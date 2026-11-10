@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Palette Pal: paint by numbers and colour mixing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#ECEEE9; --surface:#FAFBF8; --ink:#27303A; --muted:#5B6570; --line:#CBD0C8;
+  --accent:#2B3FA6; --accent-ink:#FFFFFF; --sun:#E9A800; --red:#C8102E; --danger:#A3241B;
+  color-scheme: light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#171C22; --surface:#212830; --ink:#E6E9E3; --muted:#A0AAB3; --line:#3A444E;
+    --accent:#93A2FF; --accent-ink:#121634; --sun:#F2C14E; --red:#F0647A; --danger:#FF8A80;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#171C22; --surface:#212830; --ink:#E6E9E3; --muted:#A0AAB3; --line:#3A444E;
+  --accent:#93A2FF; --accent-ink:#121634; --sun:#F2C14E; --red:#F0647A; --danger:#FF8A80;
+  color-scheme: dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;
+  font-family:"Bricolage Grotesque",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  font-size:17px;line-height:1.45}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.dab{display:inline-block;width:40px;height:40px;flex:none;
+  border-radius:58% 42% 55% 45% / 48% 56% 44% 52%;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.18), inset -3px -4px 0 rgba(0,0,0,.08)}
+.dab.big{width:88px;height:80px}
+.dab.sm{width:26px;height:26px}
+
+header.top{max-width:760px;margin:0 auto;padding:22px 18px 6px}
+.brand{display:flex;align-items:center;gap:12px}
+.mark{position:relative;width:52px;height:40px;flex:none}
+.mark i{position:absolute;width:28px;height:26px;border-radius:58% 42% 55% 45% / 48% 56% 44% 52%;mix-blend-mode:multiply}
+.mark i:nth-child(1){left:0;top:4px;background:#2B3FA6}
+.mark i:nth-child(2){left:14px;top:0;background:#E9A800;transform:rotate(40deg)}
+.mark i:nth-child(3){left:22px;top:12px;background:#C8102E;transform:rotate(-25deg)}
+@media (prefers-color-scheme: dark){ .mark i{mix-blend-mode:screen} }
+h1{font-size:2.4rem;font-weight:800;letter-spacing:-.03em;margin:0;line-height:1}
+.tagline{color:var(--muted);margin:8px 0 0;max-width:56ch}
+
+main{max-width:760px;margin:0 auto;padding:8px 18px 110px}
+.tab{display:none}
+.tab.active{display:block}
+h2{font-size:1.35rem;font-weight:800;letter-spacing:-.015em;margin:26px 0 8px}
+.hint{color:var(--muted);margin:4px 0 12px;font-size:.95rem;max-width:60ch}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;margin-top:14px}
+.field{margin:14px 0}
+.field > label,.flabel{display:flex;justify-content:space-between;font-weight:600;margin-bottom:6px}
+input[type=range]{width:100%;accent-color:var(--accent)}
+input[type=text],input[type=number],select{-webkit-user-select:text;user-select:text;width:100%;padding:10px 12px;border-radius:10px;
+  border:1px solid var(--line);background:var(--bg);min-height:44px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.row > *{flex:none}
+button{min-height:44px;padding:10px 16px;border-radius:12px;border:1px solid var(--line);
+  background:var(--surface);cursor:pointer;font-weight:600}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+button.ghost{background:transparent}
+button.danger{color:var(--danger)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--bg)}
+.seg button{border:0;border-radius:0;background:transparent;min-width:64px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.upload{display:flex;align-items:center;gap:14px;padding:18px;border:2px dashed var(--line);border-radius:16px;cursor:pointer}
+.upload input{position:absolute;opacity:0;width:1px;height:1px}
+.upload strong{display:block}
+.upload span{color:var(--muted);font-size:.95rem}
+#status,.status{color:var(--muted);font-size:.95rem}
+.canvasWrap{margin-top:14px;background:#fff;border-radius:6px;overflow:auto;border:1px solid var(--line)}
+.canvasWrap canvas{display:block;width:100%;height:auto}
+.empty{padding:28px 6px;color:var(--muted);max-width:52ch}
+
+.palette{list-style:none;padding:0;margin:10px 0 0;display:grid;gap:8px}
+.palette li{display:flex;gap:12px;align-items:center;background:var(--surface);border:1px solid var(--line);
+  border-radius:14px;padding:10px 12px}
+.num{font-weight:800;font-size:1.2rem;min-width:2ch;text-align:right}
+.pinfo{flex:1;min-width:0}
+.pinfo .hex{font-weight:600}
+.pinfo .sub{color:var(--muted);font-size:.9rem}
+.pinfo .rec{font-size:.92rem;margin-top:2px}
+
+.stage{position:relative;width:100%;aspect-ratio:3/4;max-height:74vh;background:#20262c;border-radius:16px;
+  overflow:hidden;touch-action:none;margin-top:14px}
+.stage video,.stage img.still{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.stage canvas.overlay{position:absolute;left:50%;top:50%;transform-origin:50% 50%;pointer-events:none;
+  image-rendering:auto}
+.stage .msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;
+  padding:24px;color:#E6E9E3;font-size:1rem}
+.stage .lockbadge{position:absolute;top:10px;right:10px;background:rgba(0,0,0,.55);color:#fff;padding:6px 10px;
+  border-radius:10px;font-size:.85rem;display:none}
+.stage.locked .lockbadge{display:block}
+
+.colourEdit{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center}
+.rgb{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.rgb label{font-size:.85rem;color:var(--muted)}
+.pickerWrap{position:relative}
+.pickerWrap input[type=color]{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
+
+.paints{list-style:none;padding:0;margin:10px 0 0;display:grid;gap:8px}
+.paints li{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--line);
+  border-radius:14px;padding:10px 12px}
+.paints li .pinfo{cursor:pointer}
+
+.target{display:flex;gap:16px;align-items:center}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.chips button{padding:4px;min-height:auto;border:0;background:transparent;position:relative}
+.chips button span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.8rem}
+
+.recipe{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;margin-top:12px}
+.recipe .head{display:flex;align-items:center;gap:12px}
+.pair{display:flex}
+.pair .dab:last-child{margin-left:-10px}
+.recipe .verdict{font-weight:800}
+.recipe .de{color:var(--muted);font-size:.9rem}
+.bar{display:flex;height:26px;border-radius:13px;overflow:hidden;margin:14px 0 10px;border:1px solid var(--line)}
+.bar div{height:100%}
+.ing{display:grid;grid-template-columns:auto 1fr auto;gap:8px 12px;align-items:center}
+.ing .pct{font-weight:800;font-variant-numeric:tabular-nums}
+.parts{color:var(--muted);font-size:.95rem;margin-top:10px}
+
+nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);
+  padding-bottom:env(safe-area-inset-bottom,0px);z-index:20}
+nav.tabs .in{max-width:760px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr)}
+nav.tabs button{border:0;border-radius:0;background:transparent;min-height:58px;font-weight:600;color:var(--muted);
+  display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px}
+nav.tabs button i{width:18px;height:16px;border-radius:58% 42% 55% 45% / 48% 56% 44% 52%;background:var(--line)}
+nav.tabs button[aria-selected="true"]{color:var(--ink)}
+nav.tabs button[aria-selected="true"] i{background:var(--accent)}
+
+.sampler{position:fixed;inset:0;background:rgba(10,12,15,.92);z-index:50;display:none;flex-direction:column;
+  padding:calc(env(safe-area-inset-top,0px) + 12px) 14px calc(env(safe-area-inset-bottom,0px) + 14px);color:#E6E9E3}
+.sampler.open{display:flex}
+.sampler h3{margin:0 0 10px;font-size:1.2rem}
+.sstage{position:relative;flex:1;min-height:0;border-radius:14px;overflow:hidden;background:#000}
+.sstage video,.sstage canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.reticle{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;
+  border:3px solid #fff;box-shadow:0 0 0 2px rgba(0,0,0,.6);pointer-events:none}
+.sbar{display:flex;align-items:center;gap:12px;margin-top:12px;flex-wrap:wrap}
+.sampler button{background:#2A323B;border-color:#3A444E;color:#E6E9E3}
+.sampler button.primary{background:#93A2FF;color:#121634}
+.sampler .status{color:#A0AAB3}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><span class="mark" aria-hidden="true"><i></i><i></i><i></i></span><h1>Palette Pal</h1></div>
+  <p class="tagline">Turn a photo into a paint‑by‑numbers pattern, trace it onto your canvas through the camera, and work out how to mix each colour from the paints you own.</p>
+</header>
+
+<main>
+<!-- PICTURE -->
+<section id="tab-picture" class="tab active" aria-label="Picture">
+  <div class="panel">
+    <label class="upload">
+      <span class="dab" style="background:var(--sun)"></span>
+      <div><strong id="uploadLabel">Choose a photo</strong><span>Your photo stays on this device.</span></div>
+      <input type="file" id="photoInput" accept="image/*">
+    </label>
+    <div class="field">
+      <label for="kRange">Number of colours <output id="kOut">12</output></label>
+      <input type="range" id="kRange" min="4" max="30" value="12">
+    </div>
+    <div class="field">
+      <span class="flabel">Detail</span>
+      <div class="seg" id="detailSeg" role="group" aria-label="Detail">
+        <button type="button" data-v="fine" aria-pressed="false">Fine</button>
+        <button type="button" data-v="medium" aria-pressed="true">Medium</button>
+        <button type="button" data-v="bold" aria-pressed="false">Bold</button>
+      </div>
+    </div>
+    <div class="field">
+      <label for="smoothRange">Smoothing <output id="smoothOut">1</output></label>
+      <input type="range" id="smoothRange" min="0" max="3" value="1">
+    </div>
+    <div class="row"><button class="primary" id="makeBtn" disabled>Make pattern</button><span id="status" role="status"></span></div>
+  </div>
+
+  <p class="empty" id="pictureEmpty">Choose a photo to start. Simple pictures with clear shapes, like a pet, a landscape or a bowl of fruit, make the most paintable patterns.</p>
+
+  <div id="patternArea" hidden>
+    <div class="row" style="margin-top:16px">
+      <div class="seg" id="viewSeg" role="group" aria-label="View">
+        <button type="button" data-v="outline" aria-pressed="true">Outline</button>
+        <button type="button" data-v="colour" aria-pressed="false">Coloured</button>
+        <button type="button" data-v="original" aria-pressed="false">Original</button>
+      </div>
+    </div>
+    <div class="canvasWrap" id="patternView"></div>
+    <div class="row" style="margin-top:12px">
+      <button id="saveBtn">Save outline image</button>
+      <button id="toTraceBtn" class="primary">Trace onto canvas</button>
+    </div>
+
+    <h2>Colours in this pattern</h2>
+    <p class="hint" id="paletteHint"></p>
+    <button id="allMixBtn">Work out every mix</button>
+    <ol class="palette" id="paletteList"></ol>
+  </div>
+</section>
+
+<!-- TRACE -->
+<section id="tab-trace" class="tab" aria-label="Trace">
+  <p class="hint">Prop your phone above the canvas, drag the pattern into place, pinch to resize and twist to rotate, then lock it and paint along the lines.</p>
+  <div class="stage" id="stage">
+    <video id="traceVideo" playsinline muted autoplay></video>
+    <img class="still" id="traceStill" alt="" hidden>
+    <canvas class="overlay" id="overlay"></canvas>
+    <div class="msg" id="stageMsg">Make a pattern first, then start the camera.</div>
+    <div class="lockbadge">Locked</div>
+  </div>
+  <div class="panel">
+    <div class="row">
+      <button class="primary" id="camBtn">Start camera</button>
+      <label class="row" style="gap:6px"><button type="button" id="stillBtn">Use a photo of the canvas</button>
+        <input type="file" id="stillInput" accept="image/*" capture="environment" hidden></label>
+    </div>
+    <div class="field">
+      <label for="opRange">Pattern opacity <output id="opOut">70%</output></label>
+      <input type="range" id="opRange" min="10" max="100" value="70">
+    </div>
+    <div class="row">
+      <div class="seg" id="ovSeg" role="group" aria-label="Overlay">
+        <button type="button" data-v="outline" aria-pressed="true">Outline</button>
+        <button type="button" data-v="colour" aria-pressed="false">Coloured</button>
+      </div>
+      <div class="seg" id="lineSeg" role="group" aria-label="Line colour">
+        <button type="button" data-v="dark" aria-pressed="true">Dark lines</button>
+        <button type="button" data-v="light" aria-pressed="false">Light lines</button>
+      </div>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button id="lockBtn" aria-pressed="false">Lock position</button>
+      <button id="resetBtn" class="ghost">Reset position</button>
+    </div>
+  </div>
+</section>
+
+<!-- PAINTS -->
+<section id="tab-paints" class="tab" aria-label="Paints">
+  <div class="panel">
+    <h2 style="margin-top:0" id="paintFormTitle">Add a paint</h2>
+    <div class="field"><label for="pName">Name</label><input type="text" id="pName" placeholder="Titanium white"></div>
+    <div class="colourEdit" id="paintColour">
+      <div class="pickerWrap"><span class="dab big" data-f="swatch"></span><input type="color" data-f="picker" aria-label="Pick a colour"></div>
+      <div>
+        <label class="flabel" style="margin:0 0 4px">HEX</label>
+        <input type="text" data-f="hex" inputmode="text" autocomplete="off" spellcheck="false" placeholder="#F4F4F0">
+        <div class="rgb" style="margin-top:8px">
+          <div><label>R</label><input type="number" data-f="r" min="0" max="255"></div>
+          <div><label>G</label><input type="number" data-f="g" min="0" max="255"></div>
+          <div><label>B</label><input type="number" data-f="b" min="0" max="255"></div>
+        </div>
+      </div>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <button id="paintCamBtn">Read colour with camera</button>
+      <button class="primary" id="savePaintBtn">Save paint</button>
+      <button class="ghost" id="cancelEditBtn" hidden>Cancel</button>
+    </div>
+  </div>
+
+  <h2>Your paints</h2>
+  <p class="hint">For the most accurate mixes, paint a thick swatch of each colour on white card, let it dry, and read it with the camera in daylight. Tap a paint to edit it.</p>
+  <ul class="paints" id="paintList"></ul>
+  <div id="paintsEmpty" class="empty">No paints yet. Add the paints you own, or start with a common set and adjust the colours to match your tubes.
+    <div style="margin-top:12px"><button id="starterBtn">Add a common set</button></div></div>
+</section>
+
+<!-- MIX -->
+<section id="tab-mix" class="tab" aria-label="Mix">
+  <div class="panel">
+    <h2 style="margin-top:0">Colour to mix</h2>
+    <div class="colourEdit" id="targetColour">
+      <div class="pickerWrap"><span class="dab big" data-f="swatch"></span><input type="color" data-f="picker" aria-label="Pick a colour"></div>
+      <div>
+        <label class="flabel" style="margin:0 0 4px">HEX</label>
+        <input type="text" data-f="hex" autocomplete="off" spellcheck="false">
+        <div class="rgb" style="margin-top:8px">
+          <div><label>R</label><input type="number" data-f="r" min="0" max="255"></div>
+          <div><label>G</label><input type="number" data-f="g" min="0" max="255"></div>
+          <div><label>B</label><input type="number" data-f="b" min="0" max="255"></div>
+        </div>
+      </div>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <button id="targetCamBtn">Read colour with camera</button>
+    </div>
+    <div id="fromPattern" hidden>
+      <div class="flabel" style="margin-top:14px">From your pattern</div>
+      <div class="chips" id="patternChips"></div>
+    </div>
+    <div class="field">
+      <span class="flabel">Most paints in one mix</span>
+      <div class="seg" id="maxSeg" role="group" aria-label="Most paints in one mix">
+        <button type="button" data-v="1" aria-pressed="false">1</button>
+        <button type="button" data-v="2" aria-pressed="false">2</button>
+        <button type="button" data-v="3" aria-pressed="true">3</button>
+      </div>
+    </div>
+  </div>
+  <div id="mixResults"></div>
+</section>
+</main>
+
+<nav class="tabs" aria-label="Sections"><div class="in" role="tablist">
+  <button role="tab" data-tab="picture" aria-selected="true"><i></i>Picture</button>
+  <button role="tab" data-tab="trace" aria-selected="false"><i></i>Trace</button>
+  <button role="tab" data-tab="paints" aria-selected="false"><i></i>Paints</button>
+  <button role="tab" data-tab="mix" aria-selected="false"><i></i>Mix</button>
+</div></nav>
+
+<!-- SAMPLER -->
+<div class="sampler" id="sampler" role="dialog" aria-modal="true" aria-labelledby="samplerTitle">
+  <h3 id="samplerTitle">Read a colour</h3>
+  <div class="sstage" id="sstage">
+    <video id="sVideo" playsinline muted autoplay></video>
+    <canvas id="sPhoto" hidden></canvas>
+    <div class="reticle" id="reticle"></div>
+  </div>
+  <div class="sbar">
+    <span class="dab" id="sSwatch" style="background:#888"></span>
+    <div style="flex:1;min-width:140px"><div id="sHex" style="font-weight:800">Reading…</div>
+      <div class="status" id="sMsg">Point the circle at the paint.</div></div>
+  </div>
+  <div class="sbar">
+    <button class="primary" id="sUse">Use this colour</button>
+    <button id="sPhotoBtn">Take a photo instead</button>
+    <input type="file" id="sPhotoInput" accept="image/*" capture="environment" hidden>
+    <button id="sWhite">Set white from paper</button>
+    <button id="sWhiteClear" hidden>Clear white setting</button>
+    <button id="sCancel">Cancel</button>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const tick = () => new Promise(r => setTimeout(r, 0));
+const isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---------- storage ---------- */
+function load(key, fallback){ try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }catch(e){ return fallback; } }
+function save(key, val){ try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){} }
+
+/* ---------- colour maths ---------- */
+const S2L = new Float32Array(256);
+for(let i=0;i<256;i++){ const v=i/255; S2L[i] = v<=0.04045 ? v/12.92 : Math.pow((v+0.055)/1.055, 2.4); }
+const l2s = v => { v = Math.min(1, Math.max(0, v)); const s = v<=0.0031308 ? v*12.92 : 1.055*Math.pow(v,1/2.4)-0.055; return Math.round(s*255); };
+function hexToRgb(h){
+  h = String(h||'').trim().replace(/^#/,'');
+  if(/^[0-9a-f]{3}$/i.test(h)) h = h.split('').map(c=>c+c).join('');
+  if(!/^[0-9a-f]{6}$/i.test(h)) return null;
+  return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)];
+}
+const rgbToHex = (r,g,b) => '#' + [r,g,b].map(v => Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0')).join('').toUpperCase();
+const fLab = t => t > 0.008856 ? Math.cbrt(t) : 7.787*t + 16/116;
+function linToLab(r,g,b){
+  const X=(0.4124*r+0.3576*g+0.1805*b)/0.95047, Y=0.2126*r+0.7152*g+0.0722*b, Z=(0.0193*r+0.1192*g+0.9505*b)/1.08883;
+  const fx=fLab(X), fy=fLab(Y), fz=fLab(Z);
+  return [116*fy-16, 500*(fx-fy), 200*(fy-fz)];
+}
+const hexToLab = h => { const c=hexToRgb(h); return linToLab(S2L[c[0]],S2L[c[1]],S2L[c[2]]); };
+const lum = rgb => 0.2126*S2L[rgb[0]]+0.7152*S2L[rgb[1]]+0.0722*S2L[rgb[2]];
+const rad = d => d*Math.PI/180;
+function hueDeg(b,a){ if(a===0&&b===0) return 0; let h=Math.atan2(b,a)*180/Math.PI; return h<0?h+360:h; }
+function de2000(p,q){
+  const [L1,a1,b1]=p,[L2,a2,b2]=q;
+  const C1=Math.hypot(a1,b1), C2=Math.hypot(a2,b2), Cb=(C1+C2)/2, Cb7=Math.pow(Cb,7);
+  const G=0.5*(1-Math.sqrt(Cb7/(Cb7+6103515625)));
+  const a1p=(1+G)*a1, a2p=(1+G)*a2;
+  const C1p=Math.hypot(a1p,b1), C2p=Math.hypot(a2p,b2);
+  const h1p=hueDeg(b1,a1p), h2p=hueDeg(b2,a2p);
+  const dLp=L2-L1, dCp=C2p-C1p;
+  let dhp=0;
+  if(C1p*C2p!==0){ dhp=h2p-h1p; if(dhp>180) dhp-=360; else if(dhp<-180) dhp+=360; }
+  const dHp=2*Math.sqrt(C1p*C2p)*Math.sin(rad(dhp/2));
+  const Lbp=(L1+L2)/2, Cbp=(C1p+C2p)/2;
+  let hbp;
+  if(C1p*C2p===0) hbp=h1p+h2p;
+  else { hbp=(h1p+h2p)/2; if(Math.abs(h1p-h2p)>180) hbp += (h1p+h2p<360)?180:-180; }
+  const T=1-0.17*Math.cos(rad(hbp-30))+0.24*Math.cos(rad(2*hbp))+0.32*Math.cos(rad(3*hbp+6))-0.20*Math.cos(rad(4*hbp-63));
+  const dTh=30*Math.exp(-Math.pow((hbp-275)/25,2));
+  const Cbp7=Math.pow(Cbp,7), Rc=2*Math.sqrt(Cbp7/(Cbp7+6103515625));
+  const Sl=1+0.015*Math.pow(Lbp-50,2)/Math.sqrt(20+Math.pow(Lbp-50,2)), Sc=1+0.045*Cbp, Sh=1+0.015*Cbp*T;
+  const Rt=-Math.sin(rad(2*dTh))*Rc;
+  return Math.sqrt(Math.pow(dLp/Sl,2)+Math.pow(dCp/Sc,2)+Math.pow(dHp/Sh,2)+Rt*(dCp/Sc)*(dHp/Sh));
+}
+
+/* ---------- paint mixing model (Kubelka–Munk, per channel) ---------- */
+const toKS = R => (1-R)*(1-R)/(2*R);
+const fromKS = k => 1 + k - Math.sqrt(k*k + 2*k);
+const clampR = v => Math.min(0.999, Math.max(0.001, v));
+function prepPaint(p){
+  const c = hexToRgb(p.hex);
+  return { id:p.id, name:p.name, hex:p.hex, ks:[toKS(clampR(S2L[c[0]])), toKS(clampR(S2L[c[1]])), toKS(clampR(S2L[c[2]]))] };
+}
+function mixLin(P, idx, w){
+  let r=0,g=0,b=0;
+  for(let i=0;i<idx.length;i++){ const k=P[idx[i]].ks; r+=w[i]*k[0]; g+=w[i]*k[1]; b+=w[i]*k[2]; }
+  return [fromKS(r), fromKS(g), fromKS(b)];
+}
+const mixLab = (P,idx,w) => { const m=mixLin(P,idx,w); return linToLab(m[0],m[1],m[2]); };
+const mixHex = (P,idx,w) => { const m=mixLin(P,idx,w); return rgbToHex(l2s(m[0]),l2s(m[1]),l2s(m[2])); };
+
+function roundPercents(w){
+  const raw = w.map(x => x*100);
+  let p = raw.map(Math.floor);
+  let left = 100 - p.reduce((a,b)=>a+b,0);
+  raw.map((x,i)=>[x-Math.floor(x),i]).sort((a,b)=>b[0]-a[0]).slice(0,left).forEach(([,i])=>p[i]++);
+  for(let i=0;i<p.length;i++) if(p[i]<1){ const j=p.indexOf(Math.max(...p)); p[j]-=1-p[i]; p[i]=1; }
+  return p;
+}
+function solveMix(targetHex, P, maxN){
+  const n = P.length; if(!n) return [];
+  const t = hexToLab(targetHex);
+  const ev = (idx,w) => de2000(t, mixLab(P,idx,w));
+  const cands = [];
+  for(let i=0;i<n;i++) cands.push({idx:[i], w:[1], de:ev([i],[1])});
+  if(maxN>=2) for(let i=0;i<n;i++) for(let j=i+1;j<n;j++){
+    let best=null;
+    for(let s=1;s<100;s++){ const w=[s/100,1-s/100], d=ev([i,j],w); if(!best||d<best.de) best={idx:[i,j],w,de:d}; }
+    cands.push(best);
+  }
+  if(maxN>=3) for(let i=0;i<n;i++) for(let j=i+1;j<n;j++) for(let k=j+1;k<n;k++){
+    let best=null;
+    for(let a=1;a<19;a++) for(let b=1;a+b<20;b++){ const w=[a/20,b/20,(20-a-b)/20], d=ev([i,j,k],w); if(!best||d<best.de) best={idx:[i,j,k],w,de:d}; }
+    cands.push(best);
+  }
+  cands.sort((a,b)=>a.de-b.de);
+  const top = cands.slice(0, 16).map(c => {
+    let w=c.w.slice(), cur=c.de;
+    if(w.length>1) for(const step of [0.02,0.01,0.005,0.0025]){
+      let improved=true, guard=0;
+      while(improved && guard++<200){
+        improved=false;
+        for(let a=0;a<w.length;a++) for(let b=0;b<w.length;b++){
+          if(a===b || w[b]-step<0.002) continue;
+          const w2=w.slice(); w2[a]+=step; w2[b]-=step;
+          const d=ev(c.idx,w2); if(d<cur-1e-6){ w=w2; cur=d; improved=true; }
+        }
+      }
+    }
+    const pct = roundPercents(w);
+    const de = ev(c.idx, pct.map(x=>x/100));
+    return { idx:c.idx, pct, de, score: de + 0.6*(c.idx.length-1) };
+  });
+  // short list across all candidate sets, preferring fewer paints when the match is similar
+  const pool = top.concat(cands.slice(16, 40).map(c => ({idx:c.idx, pct:roundPercents(c.w), de:c.de, score:c.de+0.6*(c.idx.length-1)})));
+  const seen = new Set(), out=[];
+  pool.sort((a,b)=>a.score-b.score);
+  for(const r of pool){
+    const parts = r.idx.map((ix,i)=>[ix,r.pct[i]]).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]);
+    const key = parts.map(x=>x[0]).sort().join(',');
+    if(seen.has(key)) continue; seen.add(key);
+    out.push({ items: parts.map(([ix,p])=>({paint:P[ix], pct:p})), de:r.de,
+      hex: mixHex(P, parts.map(x=>x[0]), parts.map(x=>x[1]/100)) });
+    if(out.length===3) break;
+  }
+  return out;
+}
+function toParts(pcts){
+  if(pcts.length===1) return null;
+  for(let T=2;T<=24;T++){
+    const parts = pcts.map(p=>Math.max(1,Math.round(p*T/100)));
+    const sum = parts.reduce((a,b)=>a+b,0);
+    if(Math.max(...parts.map((x,i)=>Math.abs(x/sum*100-pcts[i]))) <= 3) return parts;
+  }
+  return null;
+}
+function verdict(de){
+  if(de<2) return 'Almost identical';
+  if(de<4) return 'Very close';
+  if(de<7) return 'Close';
+  if(de<12) return 'Noticeably different';
+  return 'A long way off';
+}
+
+/* ---------- paints state ---------- */
+let paints = load('daub.paints', []);
+let prepared = null;
+let recipeCache = new Map();
+function paintsChanged(){ save('daub.paints', paints); prepared=null; recipeCache.clear(); renderPaints(); renderPalette(); updateMix(); }
+const getPrepared = () => prepared || (prepared = paints.map(prepPaint));
+const STARTER = [
+  ['Titanium white','#F4F4F0'],['Mars black','#1E1E1F'],['Lemon yellow','#F2E03A'],['Cadmium yellow','#F6B800'],
+  ['Cadmium red','#C8102E'],['Alizarin crimson','#7A1A2C'],['Ultramarine blue','#23297A'],['Phthalo green','#0F5B48'],
+  ['Yellow ochre','#C9922E'],['Burnt umber','#4A2F22']
+];
+
+/* ---------- reusable colour fields ---------- */
+function colourFields(root, onChange){
+  const f = n => root.querySelector(`[data-f="${n}"]`);
+  let hex = '#888888';
+  function set(h, from){
+    const c = hexToRgb(h); if(!c) return;
+    hex = rgbToHex(...c);
+    f('swatch').style.background = hex;
+    if(from!=='hex') f('hex').value = hex;
+    if(from!=='rgb'){ f('r').value=c[0]; f('g').value=c[1]; f('b').value=c[2]; }
+    if(from!=='picker') f('picker').value = hex.toLowerCase();
+    if(onChange) onChange(hex);
+  }
+  f('hex').addEventListener('input', e => { if(hexToRgb(e.target.value)) set(e.target.value,'hex'); });
+  f('hex').addEventListener('blur', () => { f('hex').value = hex; });
+  ['r','g','b'].forEach(k => f(k).addEventListener('input', () => {
+    const v = ['r','g','b'].map(x => Math.max(0,Math.min(255, parseInt(f(x).value,10)||0)));
+    set(rgbToHex(...v),'rgb');
+  }));
+  f('picker').addEventListener('input', e => set(e.target.value,'picker'));
+  return { set, get: () => hex };
+}
+
+/* ---------- tabs ---------- */
+let currentTab = 'picture';
+function showTab(name){
+  currentTab = name;
+  document.querySelectorAll('.tab').forEach(s => s.classList.toggle('active', s.id==='tab-'+name));
+  document.querySelectorAll('nav.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab===name));
+  if(name!=='trace'){ stopCamera(); keepAwake(false); camBtn.textContent='Start camera'; }
+  if(name==='trace') prepareOverlay();
+  if(name==='mix') updateMix();
+  window.scrollTo(0,0);
+}
+document.querySelectorAll('nav.tabs button').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
+function segment(el, onPick){
+  el.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    el.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x===b));
+    onPick(b.dataset.v);
+  }));
+  return () => el.querySelector('[aria-pressed="true"]').dataset.v;
+}
+
+/* ---------- image processing ---------- */
+let srcImg = null, srcCanvas = null, pattern = null;
+const photoInput=$('#photoInput'), makeBtn=$('#makeBtn'), statusEl=$('#status');
+const kRange=$('#kRange'), smoothRange=$('#smoothRange');
+kRange.addEventListener('input', () => $('#kOut').textContent = kRange.value);
+smoothRange.addEventListener('input', () => $('#smoothOut').textContent = smoothRange.value);
+let detail = 'medium';
+segment($('#detailSeg'), v => detail = v);
+
+photoInput.addEventListener('change', () => {
+  const file = photoInput.files && photoInput.files[0]; if(!file) return;
+  const img = new Image();
+  img.onload = () => { srcImg = img; makeBtn.disabled = false; $('#uploadLabel').textContent = file.name || 'Photo chosen';
+    statusEl.textContent = ''; makePattern(); };
+  img.onerror = () => { statusEl.textContent = 'That file couldn’t be opened as an image. Try a JPEG or PNG.'; };
+  img.src = URL.createObjectURL(file);
+});
+makeBtn.addEventListener('click', makePattern);
+
+function boxBlur(d, w, h, r){
+  const tmp = new Float32Array(w*h*3);
+  for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+    let s0=0,s1=0,s2=0,n=0;
+    for(let k=-r;k<=r;k++){ const xx=x+k; if(xx<0||xx>=w) continue; const o=(y*w+xx)*4; s0+=d[o];s1+=d[o+1];s2+=d[o+2];n++; }
+    const t=(y*w+x)*3; tmp[t]=s0/n; tmp[t+1]=s1/n; tmp[t+2]=s2/n;
+  }
+  for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+    let s0=0,s1=0,s2=0,n=0;
+    for(let k=-r;k<=r;k++){ const yy=y+k; if(yy<0||yy>=h) continue; const t=(yy*w+x)*3; s0+=tmp[t];s1+=tmp[t+1];s2+=tmp[t+2];n++; }
+    const o=(y*w+x)*4; d[o]=s0/n; d[o+1]=s1/n; d[o+2]=s2/n;
+  }
+}
+function kmeans(L,A,B,N,k){
+  const S = Math.min(N, 16000), idx = new Int32Array(S);
+  for(let i=0;i<S;i++) idx[i] = S===N ? i : Math.floor(Math.random()*N);
+  const cl=new Float64Array(k), ca=new Float64Array(k), cb=new Float64Array(k);
+  let f = idx[Math.floor(Math.random()*S)]; cl[0]=L[f]; ca[0]=A[f]; cb[0]=B[f];
+  const D = new Float64Array(S).fill(Infinity);
+  for(let c=1;c<k;c++){
+    let tot=0;
+    for(let i=0;i<S;i++){ const p=idx[i]; const d=(L[p]-cl[c-1])**2+(A[p]-ca[c-1])**2+(B[p]-cb[c-1])**2; if(d<D[i]) D[i]=d; tot+=D[i]; }
+    let r=Math.random()*tot, pick=S-1;
+    for(let i=0;i<S;i++){ r-=D[i]; if(r<=0){ pick=i; break; } }
+    const p=idx[pick]; cl[c]=L[p]; ca[c]=A[p]; cb[c]=B[p];
+  }
+  const asg = new Int32Array(S);
+  for(let it=0; it<16; it++){
+    const sl=new Float64Array(k), sa=new Float64Array(k), sb=new Float64Array(k), sn=new Float64Array(k);
+    for(let i=0;i<S;i++){
+      const p=idx[i]; let best=0, bd=Infinity;
+      for(let c=0;c<k;c++){ const d=(L[p]-cl[c])**2+(A[p]-ca[c])**2+(B[p]-cb[c])**2; if(d<bd){bd=d;best=c;} }
+      asg[i]=best; sl[best]+=L[p]; sa[best]+=A[p]; sb[best]+=B[p]; sn[best]++;
+    }
+    for(let c=0;c<k;c++){
+      if(sn[c]){ cl[c]=sl[c]/sn[c]; ca[c]=sa[c]/sn[c]; cb[c]=sb[c]/sn[c]; }
+      else { const p=idx[Math.floor(Math.random()*S)]; cl[c]=L[p]; ca[c]=A[p]; cb[c]=B[p]; }
+    }
+  }
+  return [cl,ca,cb];
+}
+function modeFilter(lab, w, h){
+  const out = new Uint8Array(lab.length), nb = new Uint8Array(9);
+  for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+    let n=0;
+    for(let dy=-1;dy<=1;dy++){ const yy=y+dy; if(yy<0||yy>=h) continue;
+      for(let dx=-1;dx<=1;dx++){ const xx=x+dx; if(xx<0||xx>=w) continue; nb[n++]=lab[yy*w+xx]; } }
+    const self = lab[y*w+x]; let best=self, bc=0;
+    for(let i=0;i<n;i++){ let c=0; for(let j=0;j<n;j++) if(nb[j]===nb[i]) c++; if(c>bc || (c===bc && nb[i]===self)){ bc=c; best=nb[i]; } }
+    out[y*w+x]=best;
+  }
+  return out;
+}
+function components(lab, w, h){
+  const N=w*h, comp=new Int32Array(N).fill(-1), stack=new Int32Array(N), sizes=[], labels=[];
+  for(let p=0;p<N;p++){
+    if(comp[p]>=0) continue;
+    const id=sizes.length, l=lab[p]; let sp=0, size=0;
+    stack[sp++]=p; comp[p]=id;
+    while(sp){
+      const q=stack[--sp]; size++; const x=q%w;
+      if(x>0 && comp[q-1]<0 && lab[q-1]===l){ comp[q-1]=id; stack[sp++]=q-1; }
+      if(x<w-1 && comp[q+1]<0 && lab[q+1]===l){ comp[q+1]=id; stack[sp++]=q+1; }
+      if(q>=w && comp[q-w]<0 && lab[q-w]===l){ comp[q-w]=id; stack[sp++]=q-w; }
+      if(q+w<N && comp[q+w]<0 && lab[q+w]===l){ comp[q+w]=id; stack[sp++]=q+w; }
+    }
+    sizes.push(size); labels.push(l);
+  }
+  return {comp, sizes, labels};
+}
+function mergeSmall(lab, w, h, minArea){
+  const N=w*h;
+  for(let pass=0; pass<6; pass++){
+    const {comp, sizes} = components(lab, w, h);
+    const counts = new Map();
+    for(let p=0;p<N;p++){
+      const c=comp[p]; if(sizes[c]>=minArea) continue;
+      const x=p%w; let m=counts.get(c); if(!m){ m=new Map(); counts.set(c,m); }
+      const add = q => { if(comp[q]!==c){ const l=lab[q]; m.set(l,(m.get(l)||0)+1); } };
+      if(x>0) add(p-1); if(x<w-1) add(p+1); if(p>=w) add(p-w); if(p+w<N) add(p+w);
+    }
+    if(!counts.size) break;
+    const nl = new Int16Array(sizes.length).fill(-1); let any=false;
+    counts.forEach((m,c) => { let bl=-1, bc=0; m.forEach((v,l)=>{ if(v>bc){bc=v;bl=l;} }); if(bl>=0){ nl[c]=bl; any=true; } });
+    if(!any) break;
+    for(let p=0;p<N;p++){ const v=nl[comp[p]]; if(v>=0) lab[p]=v; }
+  }
+}
+function distanceToEdges(lab, w, h){
+  const N=w*h, D=new Float32Array(N), R2=1.4142;
+  for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+    const p=y*w+x, l=lab[p];
+    const edge = x===0||y===0||x===w-1||y===h-1|| lab[p-1]!==l || lab[p+1]!==l || lab[p-w]!==l || lab[p+w]!==l;
+    D[p] = edge ? 0 : 1e9;
+  }
+  for(let y=1;y<h;y++) for(let x=1;x<w-1;x++){ const p=y*w+x;
+    D[p]=Math.min(D[p], D[p-1]+1, D[p-w]+1, D[p-w-1]+R2, D[p-w+1]+R2); }
+  for(let y=h-2;y>=0;y--) for(let x=w-2;x>=1;x--){ const p=y*w+x;
+    D[p]=Math.min(D[p], D[p+1]+1, D[p+w]+1, D[p+w+1]+R2, D[p+w-1]+R2); }
+  return D;
+}
+
+async function makePattern(){
+  if(!srcImg) return;
+  makeBtn.disabled = true; statusEl.textContent = 'Working out the shapes…'; await tick();
+  try{
+    const k = +kRange.value, smooth = +smoothRange.value;
+    const maxSide = 600, sc = Math.min(1, maxSide/Math.max(srcImg.naturalWidth, srcImg.naturalHeight));
+    const w = Math.max(1, Math.round(srcImg.naturalWidth*sc)), h = Math.max(1, Math.round(srcImg.naturalHeight*sc));
+    srcCanvas = document.createElement('canvas'); srcCanvas.width=w; srcCanvas.height=h;
+    const sctx = srcCanvas.getContext('2d'); sctx.drawImage(srcImg,0,0,w,h);
+    const id = sctx.getImageData(0,0,w,h), d = new Uint8ClampedArray(id.data);
+    if(smooth>0) boxBlur(d, w, h, smooth);
+    const N=w*h, L=new Float32Array(N), A=new Float32Array(N), B=new Float32Array(N);
+    for(let p=0;p<N;p++){ const o=p*4, lab=linToLab(S2L[d[o]],S2L[d[o+1]],S2L[d[o+2]]); L[p]=lab[0]; A[p]=lab[1]; B[p]=lab[2]; }
+    await tick();
+    const [cl,ca,cb] = kmeans(L,A,B,N,k);
+    let labels = new Uint8Array(N);
+    for(let p=0;p<N;p++){ let best=0,bd=Infinity;
+      for(let c=0;c<k;c++){ const dd=(L[p]-cl[c])**2+(A[p]-ca[c])**2+(B[p]-cb[c])**2; if(dd<bd){bd=dd;best=c;} }
+      labels[p]=best; }
+    statusEl.textContent = 'Tidying up small areas…'; await tick();
+    labels = modeFilter(labels, w, h);
+    if(smooth>0) labels = modeFilter(labels, w, h);
+    const minArea = Math.max(4, Math.round({fine:10, medium:35, bold:110}[detail] * N/360000));
+    mergeSmall(labels, w, h, minArea);
+    const {comp, sizes, labels: compLabel} = components(labels, w, h);
+    const D = distanceToEdges(labels, w, h);
+    const anchors = sizes.map(() => ({p:0, d:-1}));
+    for(let p=0;p<N;p++){ const a=anchors[comp[p]]; if(D[p]>a.d){ a.d=D[p]; a.p=p; } }
+    // average colour of each colour group, from the (smoothed) photo
+    const sum = Array.from({length:k}, () => [0,0,0,0]);
+    for(let p=0;p<N;p++){ const s=sum[labels[p]], o=p*4; s[0]+=S2L[d[o]]; s[1]+=S2L[d[o+1]]; s[2]+=S2L[d[o+2]]; s[3]++; }
+    const used = [];
+    for(let c=0;c<k;c++) if(sum[c][3]) used.push(c);
+    used.sort((a,b)=>sum[b][3]-sum[a][3]);
+    const numOf = new Int16Array(k).fill(0), palRGB = [];
+    const palette = used.map((c,i) => {
+      numOf[c]=i+1;
+      const rgb = [l2s(sum[c][0]/sum[c][3]), l2s(sum[c][1]/sum[c][3]), l2s(sum[c][2]/sum[c][3])];
+      palRGB[c] = rgb;
+      return { label:c, num:i+1, rgb, hex:rgbToHex(...rgb), share: sum[c][3]/N };
+    });
+    pattern = { w, h, labels, numOf, palRGB, palette,
+      anchors: anchors.map((a,i)=>({x:a.p%w, y:Math.floor(a.p/w), d:a.d, label:compLabel[i]})) };
+    recipeCache.clear();
+    statusEl.textContent = `Pattern ready: ${palette.length} colours, ${sizes.length} areas to paint.`;
+    $('#pictureEmpty').hidden = true; $('#patternArea').hidden = false;
+    showPatternView(); renderPalette(); renderChips(); overlayDirty = true;
+  }catch(err){
+    console.error(err); statusEl.textContent = 'Something went wrong making the pattern. Try a smaller photo or fewer colours.';
+  }
+  makeBtn.disabled = false;
+}
+
+function renderPattern(mode, opts={}){
+  const S=2, {w,h,labels,palRGB,numOf,anchors} = pattern, W=w*S, H=h*S;
+  const cv=document.createElement('canvas'); cv.width=W; cv.height=H;
+  const ctx=cv.getContext('2d');
+  if(mode==='original'){ ctx.imageSmoothingQuality='high'; ctx.drawImage(srcImg,0,0,W,H); return cv; }
+  const img=ctx.createImageData(W,H), d=img.data, lc=hexToRgb(opts.line||'#5B6470'), transparent=!!opts.transparent;
+  for(let y=0;y<H;y++){
+    const sy=y>>1, syn=(y+1)>>1;
+    for(let x=0;x<W;x++){
+      const sx=x>>1, sxn=(x+1)>>1, l=labels[sy*w+sx];
+      const edge = (sxn<w && labels[sy*w+sxn]!==l) || (syn<h && labels[syn*w+sx]!==l);
+      const o=(y*W+x)*4;
+      if(mode==='colour'){
+        const c=palRGB[l], f=edge?0.55:1;
+        d[o]=c[0]*f; d[o+1]=c[1]*f; d[o+2]=c[2]*f; d[o+3]=255;
+      } else if(edge){ d[o]=lc[0]; d[o+1]=lc[1]; d[o+2]=lc[2]; d[o+3]=255; }
+      else if(transparent){ d[o+3]=0; }
+      else { d[o]=d[o+1]=d[o+2]=255; d[o+3]=255; }
+    }
+  }
+  ctx.putImageData(img,0,0);
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  for(const a of anchors){
+    if(a.d<1.6) continue;
+    const fs=Math.max(7, Math.min(18, a.d*S*0.75));
+    ctx.font=`600 ${fs}px "Bricolage Grotesque", system-ui, sans-serif`;
+    if(mode==='colour') ctx.fillStyle = lum(palRGB[a.label])>0.25 ? '#1b1f24' : '#ffffff';
+    else ctx.fillStyle = transparent ? (opts.line||'#5B6470') : '#6B7480';
+    ctx.fillText(String(numOf[a.label]), a.x*S+S/2, a.y*S+S/2);
+  }
+  return cv;
+}
+let viewMode = 'outline';
+segment($('#viewSeg'), v => { viewMode=v; showPatternView(); });
+function showPatternView(){
+  if(!pattern) return;
+  const wrap=$('#patternView'); wrap.innerHTML='';
+  wrap.appendChild(renderPattern(viewMode));
+}
+$('#saveBtn').addEventListener('click', () => {
+  if(!pattern) return;
+  const cv = renderPattern('outline');
+  if(isNative){
+    (async () => {
+      try{
+        const P = window.Capacitor.Plugins;
+        const res = await P.Filesystem.writeFile({ path:'palette-pal-pattern.png', data: cv.toDataURL('image/png').split(',')[1], directory:'CACHE' });
+        await P.Share.share({ title:'Paint by numbers pattern', url: res.uri });
+      }catch(e){ if(!/cancel/i.test(String(e && e.message))) statusEl.textContent = 'The pattern couldn’t be saved. Try again.'; }
+    })();
+    return;
+  }
+  cv.toBlob(async blob => {
+    const file = new File([blob], 'palette-pal-pattern.png', {type:'image/png'});
+    try{
+      if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], title:'Paint by numbers pattern'}); return; }
+    }catch(e){ if(e && e.name==='AbortError') return; }
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='palette-pal-pattern.png'; a.click();
+  }, 'image/png');
+});
+$('#toTraceBtn').addEventListener('click', () => showTab('trace'));
+
+/* ---------- palette list ---------- */
+function maxPaints(){ return +($('#maxSeg [aria-pressed="true"]').dataset.v); }
+function recipeFor(hex){
+  const key = hex+'|'+maxPaints();
+  if(!recipeCache.has(key)) recipeCache.set(key, solveMix(hex, getPrepared(), maxPaints()));
+  return recipeCache.get(key);
+}
+function recipeLine(r){
+  if(!r) return '';
+  return r.items.map(it => `${it.pct}% ${esc(it.paint.name)}`).join(', ') + `. ${verdict(r.de)}.`;
+}
+function renderPalette(){
+  const list=$('#paletteList'); if(!pattern){ list.innerHTML=''; return; }
+  $('#paletteHint').textContent = paints.length
+    ? 'Tap Mix on any colour to see how to make it from your paints.'
+    : 'Add your paints in the Paints tab to see how to mix each of these.';
+  $('#allMixBtn').hidden = !paints.length;
+  list.innerHTML = pattern.palette.map(p => {
+    const key = p.hex+'|'+maxPaints(), cached = recipeCache.get(key);
+    return `<li><span class="num">${p.num}</span><span class="dab" style="background:${p.hex}"></span>
+      <div class="pinfo"><div class="hex">${p.hex}</div><div class="sub">${Math.max(1,Math.round(p.share*100))}% of the picture</div>
+      ${cached ? `<div class="rec">${recipeLine(cached[0])}</div>` : ''}</div>
+      ${paints.length ? `<button data-mix="${p.hex}">Mix</button>` : ''}</li>`;
+  }).join('');
+  list.querySelectorAll('[data-mix]').forEach(b => b.addEventListener('click', () => { target.set(b.dataset.mix); showTab('mix'); }));
+}
+$('#allMixBtn').addEventListener('click', async () => {
+  if(!pattern || !paints.length) return;
+  const btn=$('#allMixBtn'); btn.disabled=true;
+  for(let i=0;i<pattern.palette.length;i++){
+    btn.textContent = `Working out ${i+1} of ${pattern.palette.length}…`; await tick();
+    recipeFor(pattern.palette[i].hex);
+  }
+  btn.textContent='Work out every mix'; btn.disabled=false; renderPalette();
+});
+function renderChips(){
+  const box=$('#patternChips');
+  $('#fromPattern').hidden = !pattern;
+  if(!pattern) return;
+  box.innerHTML = pattern.palette.map(p => `<button aria-label="Colour ${p.num}, ${p.hex}" data-hex="${p.hex}">
+    <span class="dab sm" style="background:${p.hex}"></span><span style="color:${lum(p.rgb)>0.25?'#1b1f24':'#fff'}">${p.num}</span></button>`).join('');
+  box.querySelectorAll('button').forEach(b => b.addEventListener('click', () => target.set(b.dataset.hex)));
+}
+
+/* ---------- camera ---------- */
+let stream = null;
+async function startCamera(video){
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error('unsupported');
+  if(!stream) stream = await navigator.mediaDevices.getUserMedia({ audio:false,
+    video:{ facingMode:{ideal:'environment'}, width:{ideal:1920}, height:{ideal:1080} } });
+  video.srcObject = stream;
+  try{ await video.play(); }catch(e){}
+}
+function stopCamera(){
+  if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; }
+  document.querySelectorAll('video').forEach(v => v.srcObject=null);
+}
+const CAM_FAIL = isNative
+  ? 'The camera couldn’t start. Turn on camera access for Palette Pal in the Settings app, or use a photo instead.'
+  : 'The camera couldn’t start here. If you’re viewing this inside another app, open it in Safari and allow camera access, or use a photo instead.';
+let wakeLock = null;
+async function keepAwake(on){
+  try{
+    if(on && 'wakeLock' in navigator && !wakeLock){ wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release',()=>wakeLock=null); }
+    if(!on && wakeLock){ await wakeLock.release(); wakeLock=null; }
+  }catch(e){}
+}
+
+/* ---------- trace overlay ---------- */
+const stage=$('#stage'), overlay=$('#overlay'), traceVideo=$('#traceVideo'), traceStill=$('#traceStill'), stageMsg=$('#stageMsg'), camBtn=$('#camBtn');
+let ovMode='outline', lineMode='dark', overlayDirty=true;
+const tr = {x:0, y:0, s:1, r:0, locked:false};
+segment($('#ovSeg'), v => { ovMode=v; overlayDirty=true; prepareOverlay(); });
+segment($('#lineSeg'), v => { lineMode=v; overlayDirty=true; prepareOverlay(); });
+function prepareOverlay(){
+  if(!pattern){ overlay.width=0; stageMsg.hidden=false; stageMsg.textContent='Make a pattern in the Picture tab first.'; return; }
+  if(overlayDirty){
+    const cv = ovMode==='colour' ? renderPattern('colour') : renderPattern('outline', {transparent:true, line: lineMode==='dark' ? '#111418' : '#FFFFFF'});
+    overlay.width=cv.width; overlay.height=cv.height; overlay.getContext('2d').drawImage(cv,0,0);
+    overlay.style.width = cv.width+'px'; overlay.style.height = cv.height+'px';
+    const firstTime = tr.s===1 && tr.x===0 && tr.y===0 && tr.r===0;
+    overlayDirty=false;
+    if(firstTime) resetTransform();
+  }
+  if(!stream && traceStill.hidden){ stageMsg.hidden=false; stageMsg.textContent='Start the camera and point it at your canvas.'; }
+  applyTr();
+}
+function resetTransform(){
+  const r = stage.getBoundingClientRect();
+  tr.x=0; tr.y=0; tr.r=0;
+  tr.s = overlay.width ? Math.min(r.width/overlay.width, r.height/overlay.height)*0.92 : 1;
+  applyTr();
+}
+function applyTr(){
+  overlay.style.transform = `translate(-50%,-50%) translate(${tr.x}px,${tr.y}px) rotate(${tr.r}rad) scale(${tr.s})`;
+  overlay.style.opacity = $('#opRange').value/100;
+}
+$('#opRange').addEventListener('input', e => { $('#opOut').textContent = e.target.value+'%'; applyTr(); });
+$('#resetBtn').addEventListener('click', resetTransform);
+$('#lockBtn').addEventListener('click', e => {
+  tr.locked = !tr.locked; e.target.setAttribute('aria-pressed', tr.locked);
+  e.target.textContent = tr.locked ? 'Unlock position' : 'Lock position';
+  stage.classList.toggle('locked', tr.locked);
+});
+camBtn.addEventListener('click', async () => {
+  if(stream){ stopCamera(); keepAwake(false); camBtn.textContent='Start camera'; prepareOverlay(); return; }
+  try{
+    await startCamera(traceVideo); traceStill.hidden=true; stageMsg.hidden=true;
+    camBtn.textContent='Stop camera'; keepAwake(true);
+  }catch(e){ stageMsg.hidden=false; stageMsg.textContent=CAM_FAIL; }
+});
+$('#stillBtn').addEventListener('click', () => $('#stillInput').click());
+$('#stillInput').addEventListener('change', e => {
+  const f=e.target.files && e.target.files[0]; if(!f) return;
+  stopCamera(); camBtn.textContent='Start camera';
+  traceStill.src = URL.createObjectURL(f); traceStill.hidden=false; stageMsg.hidden=true;
+});
+const pts = new Map();
+stage.addEventListener('pointerdown', e => { if(tr.locked) return; stage.setPointerCapture(e.pointerId); pts.set(e.pointerId,{x:e.clientX,y:e.clientY}); });
+stage.addEventListener('pointermove', e => {
+  if(!pts.has(e.pointerId) || tr.locked) return;
+  const before = [...pts.values()].map(p=>({...p}));
+  pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  const after = [...pts.values()];
+  if(after.length===1){ tr.x += after[0].x-before[0].x; tr.y += after[0].y-before[0].y; }
+  else if(after.length>=2){
+    const [a0,b0]=before, [a1,b1]=after;
+    const d0=Math.hypot(b0.x-a0.x,b0.y-a0.y), d1=Math.hypot(b1.x-a1.x,b1.y-a1.y);
+    if(d0>0) tr.s *= d1/d0;
+    tr.r += Math.atan2(b1.y-a1.y,b1.x-a1.x) - Math.atan2(b0.y-a0.y,b0.x-a0.x);
+    tr.x += (a1.x+b1.x)/2 - (a0.x+b0.x)/2; tr.y += (a1.y+b1.y)/2 - (a0.y+b0.y)/2;
+  }
+  applyTr();
+});
+['pointerup','pointercancel','pointerleave'].forEach(t => stage.addEventListener(t, e => pts.delete(e.pointerId)));
+stage.addEventListener('wheel', e => { if(tr.locked) return; e.preventDefault(); tr.s *= Math.exp(-e.deltaY*0.0015); applyTr(); }, {passive:false});
+
+/* ---------- colour sampler ---------- */
+const sampler=$('#sampler'), sVideo=$('#sVideo'), sPhoto=$('#sPhoto'), reticle=$('#reticle');
+let wb = load('daub.wb', null), sCallback=null, sRaw=null, sLoop=null, sMode='live';
+function applyWB(lin){ return wb ? lin.map((v,i)=>Math.min(1, v*wb[i])) : lin; }
+function averageLin(ctx, x, y, size){
+  const d = ctx.getImageData(Math.max(0,x), Math.max(0,y), size, size).data; let r=0,g=0,b=0,n=0;
+  for(let i=0;i<d.length;i+=4){ r+=S2L[d[i]]; g+=S2L[d[i+1]]; b+=S2L[d[i+2]]; n++; }
+  return n ? [r/n,g/n,b/n] : null;
+}
+function showSample(raw){
+  sRaw = raw; if(!raw) return;
+  const c = applyWB(raw), hex = rgbToHex(l2s(c[0]),l2s(c[1]),l2s(c[2]));
+  $('#sSwatch').style.background = hex; $('#sHex').textContent = hex;
+}
+const grab = document.createElement('canvas');
+function sampleVideo(){
+  const vw=sVideo.videoWidth, vh=sVideo.videoHeight; if(!vw) return;
+  const r = Math.max(6, Math.round(Math.min(vw,vh)*0.025));
+  grab.width=2*r; grab.height=2*r;
+  const g = grab.getContext('2d', {willReadFrequently:true});
+  g.drawImage(sVideo, vw/2-r, vh/2-r, 2*r, 2*r, 0, 0, 2*r, 2*r);
+  showSample(averageLin(g,0,0,2*r));
+}
+function updateWBUI(){
+  $('#sWhiteClear').hidden = !wb;
+  $('#sMsg').textContent = wb ? 'White balance set from paper. Point the circle at the paint.'
+    : 'Point the circle at the paint. For truer readings, first point it at plain white paper and tap Set white from paper.';
+}
+async function openSampler(title, cb){
+  sCallback=cb; $('#samplerTitle').textContent=title; sampler.classList.add('open');
+  sMode='live'; sPhoto.hidden=true; sVideo.hidden=false; reticle.hidden=false;
+  $('#sHex').textContent='Reading…'; updateWBUI();
+  try{
+    await startCamera(sVideo);
+    clearInterval(sLoop); sLoop=setInterval(sampleVideo, 200);
+  }catch(e){ $('#sMsg').textContent = CAM_FAIL; sVideo.hidden=true; reticle.hidden=true; }
+}
+function closeSampler(){
+  clearInterval(sLoop); sLoop=null; sampler.classList.remove('open');
+  stopCamera();
+}
+$('#sCancel').addEventListener('click', closeSampler);
+$('#sUse').addEventListener('click', () => {
+  if(!sRaw) return;
+  const c=applyWB(sRaw), hex=rgbToHex(l2s(c[0]),l2s(c[1]),l2s(c[2]));
+  const cb=sCallback; closeSampler(); if(cb) cb(hex);
+});
+$('#sWhite').addEventListener('click', () => {
+  if(!sRaw) return;
+  wb = sRaw.map(v => Math.min(5, Math.max(0.25, 0.88/Math.max(v,0.01))));
+  save('daub.wb', wb); updateWBUI(); showSample(sRaw);
+});
+$('#sWhiteClear').addEventListener('click', () => { wb=null; save('daub.wb', null); updateWBUI(); showSample(sRaw); });
+$('#sPhotoBtn').addEventListener('click', () => $('#sPhotoInput').click());
+$('#sPhotoInput').addEventListener('change', e => {
+  const f=e.target.files && e.target.files[0]; if(!f) return;
+  const img=new Image();
+  img.onload = () => {
+    clearInterval(sLoop); sLoop=null; stopCamera();
+    sMode='photo'; sVideo.hidden=true; sPhoto.hidden=false; reticle.hidden=true;
+    const sc=Math.min(1, 1600/Math.max(img.naturalWidth,img.naturalHeight));
+    sPhoto.width=Math.round(img.naturalWidth*sc); sPhoto.height=Math.round(img.naturalHeight*sc);
+    sPhoto.getContext('2d',{willReadFrequently:true}).drawImage(img,0,0,sPhoto.width,sPhoto.height);
+    $('#sMsg').textContent='Tap the paint in the photo to read its colour.'; $('#sHex').textContent='Tap the photo';
+  };
+  img.src=URL.createObjectURL(f); e.target.value='';
+});
+sPhoto.addEventListener('click', e => {
+  const rect=sPhoto.getBoundingClientRect();
+  const s=Math.min(rect.width/sPhoto.width, rect.height/sPhoto.height);
+  const ox=(rect.width-sPhoto.width*s)/2, oy=(rect.height-sPhoto.height*s)/2;
+  const x=(e.clientX-rect.left-ox)/s, y=(e.clientY-rect.top-oy)/s;
+  if(x<0||y<0||x>=sPhoto.width||y>=sPhoto.height) return;
+  const r=Math.max(4, Math.round(Math.min(sPhoto.width,sPhoto.height)*0.012));
+  showSample(averageLin(sPhoto.getContext('2d'), Math.round(x-r), Math.round(y-r), 2*r));
+  reticle.hidden=false;
+  reticle.style.left=(e.clientX-sampler.querySelector('#sstage').getBoundingClientRect().left)+'px';
+  reticle.style.top=(e.clientY-sampler.querySelector('#sstage').getBoundingClientRect().top)+'px';
+});
+
+/* ---------- paints UI ---------- */
+const paintColour = colourFields($('#paintColour'));
+paintColour.set('#F4F4F0');
+let editingId = null;
+$('#paintCamBtn').addEventListener('click', () => openSampler('Read a paint colour', hex => paintColour.set(hex)));
+$('#savePaintBtn').addEventListener('click', () => {
+  const name = $('#pName').value.trim() || paintColour.get();
+  if(editingId){ const p=paints.find(x=>x.id===editingId); if(p){ p.name=name; p.hex=paintColour.get(); } }
+  else paints.push({ id: Date.now().toString(36)+Math.random().toString(36).slice(2,6), name, hex: paintColour.get() });
+  endEdit(); paintsChanged();
+});
+$('#cancelEditBtn').addEventListener('click', endEdit);
+function endEdit(){ editingId=null; $('#pName').value=''; $('#paintFormTitle').textContent='Add a paint'; $('#savePaintBtn').textContent='Save paint'; $('#cancelEditBtn').hidden=true; }
+$('#starterBtn').addEventListener('click', () => {
+  STARTER.forEach(([name,hex],i) => paints.push({id:'s'+i+Date.now().toString(36), name, hex}));
+  paintsChanged();
+});
+function renderPaints(){
+  $('#paintsEmpty').hidden = paints.length>0;
+  const list=$('#paintList');
+  list.innerHTML = paints.map(p => `<li><span class="dab" style="background:${p.hex}"></span>
+    <div class="pinfo" data-edit="${p.id}"><div class="hex">${esc(p.name)}</div><div class="sub">${p.hex}</div></div>
+    <button class="ghost danger" data-del="${p.id}" aria-label="Remove ${esc(p.name)}">Remove</button></li>`).join('');
+  list.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => { paints=paints.filter(p=>p.id!==b.dataset.del); paintsChanged(); }));
+  list.querySelectorAll('[data-edit]').forEach(el => el.addEventListener('click', () => {
+    const p=paints.find(x=>x.id===el.dataset.edit); if(!p) return;
+    editingId=p.id; $('#pName').value=p.name; paintColour.set(p.hex);
+    $('#paintFormTitle').textContent='Edit paint'; $('#savePaintBtn').textContent='Save changes'; $('#cancelEditBtn').hidden=false;
+    window.scrollTo({top:0, behavior:'smooth'});
+  }));
+}
+
+/* ---------- mix UI ---------- */
+let mixTimer=null;
+const target = colourFields($('#targetColour'), () => { clearTimeout(mixTimer); mixTimer=setTimeout(updateMix, 150); });
+segment($('#maxSeg'), () => { renderPalette(); updateMix(); });
+$('#targetCamBtn').addEventListener('click', () => openSampler('Read the colour you want', hex => target.set(hex)));
+function updateMix(){
+  const box=$('#mixResults');
+  if(!paints.length){ box.innerHTML = `<p class="empty">Add the paints you own in the Paints tab, and the mix for this colour will appear here.</p>`; return; }
+  if(currentTab!=='mix') return;
+  const tHex = target.get(), res = recipeFor(tHex);
+  if(!res.length){ box.innerHTML=''; return; }
+  box.innerHTML = res.map((r,i) => {
+    const parts = toParts(r.items.map(x=>x.pct));
+    const partsText = parts ? 'Or by parts: ' + r.items.map((it,j)=>`${parts[j]} ${parts[j]===1?'part':'parts'} ${esc(it.paint.name)}`).join(', ') + '.' : '';
+    return `<div class="recipe">
+      <div class="head"><div class="pair"><span class="dab" style="background:${tHex}" title="Wanted"></span><span class="dab" style="background:${r.hex}" title="Mixed"></span></div>
+        <div><div class="verdict">${i===0?'Best mix':'Alternative'}: ${verdict(r.de)}</div><div class="de">Colour difference ${r.de.toFixed(1)} (under 2 is hard to see)</div></div></div>
+      <div class="bar">${r.items.map(it=>`<div style="flex:${it.pct};background:${it.paint.hex}"></div>`).join('')}</div>
+      <div class="ing">${r.items.map(it=>`<span class="dab sm" style="background:${it.paint.hex}"></span><span>${esc(it.paint.name)}</span><span class="pct">${it.pct}%</span>`).join('')}</div>
+      ${partsText ? `<div class="parts">${partsText}</div>`:''}
+      ${i===0 && r.de>=12 ? `<div class="parts">None of your paints get near this. A paint closer to this colour would help.</div>`:''}
+    </div>`;
+  }).join('') + `<p class="hint" style="margin-top:14px">Mixes are predicted, so treat them as a starting point. Start with the lightest paint and add the darker or stronger ones a little at a time. Strong paints like phthalo blue often need less than shown.</p>`;
+}
+target.set('#6E8B3D');
+
+/* ---------- start ---------- */
+renderPaints(); renderPalette(); updateMix();
+window.addEventListener('resize', () => { if(currentTab==='trace' && !tr.locked) applyTr(); });
+document.addEventListener('visibilitychange', () => { if(document.hidden){ stopCamera(); keepAwake(false); camBtn.textContent='Start camera'; } });
+})();
+</script>
+</body>
+</html>

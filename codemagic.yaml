@@ -1,0 +1,63 @@
+workflows:
+  palette-pal-ios-testflight:
+    name: Palette Pal iOS to TestFlight
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    integrations:
+      # Use the same App Store Connect API key name you set up in Codemagic for your other apps
+      app_store_connect: Berfau ASC
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.stevenwilliams.palettepal
+      vars:
+        XCODE_WORKSPACE: ios/App/App.xcworkspace
+        XCODE_SCHEME: App
+        # The Apple ID number from App Store Connect > App Information
+        APP_STORE_APPLE_ID: 6833206061
+      node: 20
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Install packages
+        script: npm install
+      - name: Create the iOS project
+        script: |
+          if [ ! -d ios ]; then npx cap add ios; fi
+      - name: App icon and splash screen
+        script: npx capacitor-assets generate --ios
+      - name: Permissions and settings in Info.plist
+        script: |
+          PLIST=ios/App/App/Info.plist
+          set_key () {
+            /usr/libexec/PlistBuddy -c "Set :$1 $2" "$PLIST" 2>/dev/null || \
+            /usr/libexec/PlistBuddy -c "Add :$1 string $2" "$PLIST"
+          }
+          set_key NSCameraUsageDescription "Palette Pal uses the camera to show your pattern over your canvas and to read paint colours."
+          set_key NSPhotoLibraryUsageDescription "Palette Pal opens photos you choose to turn them into paint-by-numbers patterns."
+          set_key NSPhotoLibraryAddUsageDescription "Palette Pal saves your patterns to your photo library when you ask it to."
+          /usr/libexec/PlistBuddy -c "Delete :UISupportedInterfaceOrientations" "$PLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :UISupportedInterfaceOrientations array" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :UISupportedInterfaceOrientations:0 string UIInterfaceOrientationPortrait" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Delete :ITSAppUsesNonExemptEncryption" "$PLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" "$PLIST"
+      - name: Copy web app into iOS project
+        script: npx cap sync ios
+      - name: Code signing
+        script: xcode-project use-profiles
+      - name: Build number
+        script: |
+          LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" 2>/dev/null || echo 0)
+          cd ios/App
+          agvtool new-version -all $((LATEST + 1))
+      - name: Build the app
+        script: |
+          xcode-project build-ipa \
+            --workspace "$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME"
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true

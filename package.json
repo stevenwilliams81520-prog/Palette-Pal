@@ -1,0 +1,20 @@
+{
+  "name": "palette-pal",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Paint by numbers, camera tracing and paint colour mixing",
+  "scripts": {
+    "ios:add": "cap add ios",
+    "ios:sync": "cap sync ios"
+  },
+  "dependencies": {
+    "@capacitor/core": "^7.0.0",
+    "@capacitor/ios": "^7.0.0",
+    "@capacitor/filesystem": "^7.0.0",
+    "@capacitor/share": "^7.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.0.0",
+    "@capacitor/assets": "^3.0.5"
+  }
+}

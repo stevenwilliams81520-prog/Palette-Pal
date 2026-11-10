@@ -1,0 +1,9 @@
+{
+  "appId": "com.stevenwilliams.palettepal",
+  "appName": "Palette Pal",
+  "webDir": "www",
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#ECEEE9"
+  }
+}
