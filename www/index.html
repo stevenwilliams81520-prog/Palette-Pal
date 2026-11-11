@@ -107,6 +107,7 @@ button.danger{color:var(--danger)}
   image-rendering:auto}
 .stage .msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;
   padding:24px;color:#E6E9E3;font-size:1rem}
+.stage .view{position:absolute;inset:0;transform-origin:0 0}
 .stage .lockbadge{position:absolute;top:10px;right:10px;background:rgba(0,0,0,.55);color:#fff;padding:6px 10px;
   border-radius:10px;font-size:.85rem;display:none}
 .stage.locked .lockbadge{display:block}
@@ -181,15 +182,17 @@ nav.tabs button[aria-selected="true"] i{background:var(--accent)}
     </label>
     <div class="field">
       <label for="kRange">Number of colours <output id="kOut">12</output></label>
-      <input type="range" id="kRange" min="4" max="30" value="12">
+      <input type="range" id="kRange" min="4" max="40" value="12">
     </div>
     <div class="field">
       <span class="flabel">Detail</span>
       <div class="seg" id="detailSeg" role="group" aria-label="Detail">
-        <button type="button" data-v="fine" aria-pressed="false">Fine</button>
-        <button type="button" data-v="medium" aria-pressed="true">Medium</button>
         <button type="button" data-v="bold" aria-pressed="false">Bold</button>
+        <button type="button" data-v="medium" aria-pressed="true">Medium</button>
+        <button type="button" data-v="fine" aria-pressed="false">Fine</button>
+        <button type="button" data-v="extra" aria-pressed="false">Extra fine</button>
       </div>
+      <p class="hint" style="margin-top:8px">Fine and Extra fine keep small details like eyes, highlights and edges, but give you more, smaller areas to paint. For the most detail, use Extra fine with 25 or more colours and smoothing at 0.</p>
     </div>
     <div class="field">
       <label for="smoothRange">Smoothing <output id="smoothOut">1</output></label>
@@ -224,13 +227,15 @@ nav.tabs button[aria-selected="true"] i{background:var(--accent)}
 
 <!-- TRACE -->
 <section id="tab-trace" class="tab" aria-label="Trace">
-  <p class="hint">Prop your phone above the canvas, drag the pattern into place, pinch to resize and twist to rotate, then lock it and paint along the lines.</p>
+  <p class="hint">Prop your phone above the canvas, drag the pattern into place, pinch to resize and twist to rotate, then lock it. Once it’s locked, pinch or double‑tap to zoom in on the canvas and the lines together.</p>
   <div class="stage" id="stage">
-    <video id="traceVideo" playsinline muted autoplay></video>
-    <img class="still" id="traceStill" alt="" hidden>
-    <canvas class="overlay" id="overlay"></canvas>
+    <div class="view" id="traceView">
+      <video id="traceVideo" playsinline muted autoplay></video>
+      <img class="still" id="traceStill" alt="" hidden>
+      <canvas class="overlay" id="overlay"></canvas>
+    </div>
     <div class="msg" id="stageMsg">Make a pattern first, then start the camera.</div>
-    <div class="lockbadge">Locked</div>
+    <div class="lockbadge">Locked: pinch to zoom</div>
   </div>
   <div class="panel">
     <div class="row">
@@ -256,6 +261,7 @@ nav.tabs button[aria-selected="true"] i{background:var(--accent)}
       <button id="lockBtn" aria-pressed="false">Lock position</button>
       <button id="resetBtn" class="ghost">Reset position</button>
     </div>
+    <div class="zoombar" id="viewZoomBar" hidden><button type="button" id="vzOut" aria-label="Zoom out">−</button><button type="button" id="vzIn" aria-label="Zoom in">+</button><button type="button" id="vzFit">Fit</button><span>Zoom in on the canvas</span></div>
   </div>
 </section>
 
@@ -776,7 +782,7 @@ async function makePattern(){
   makeBtn.disabled = true; statusEl.textContent = 'Working out the shapes…'; await tick();
   try{
     const k = +kRange.value, smooth = +smoothRange.value;
-    const maxSide = 600, sc = Math.min(1, maxSide/Math.max(srcImg.naturalWidth, srcImg.naturalHeight));
+    const maxSide = {bold:600, medium:600, fine:750, extra:900}[detail], sc = Math.min(1, maxSide/Math.max(srcImg.naturalWidth, srcImg.naturalHeight));
     const w = Math.max(1, Math.round(srcImg.naturalWidth*sc)), h = Math.max(1, Math.round(srcImg.naturalHeight*sc));
     srcCanvas = document.createElement('canvas'); srcCanvas.width=w; srcCanvas.height=h;
     const sctx = srcCanvas.getContext('2d'); sctx.drawImage(srcImg,0,0,w,h);
@@ -793,7 +799,7 @@ async function makePattern(){
     statusEl.textContent = 'Tidying up small areas…'; await tick();
     labels = modeFilter(labels, w, h);
     if(smooth>0) labels = modeFilter(labels, w, h);
-    const minArea = Math.max(4, Math.round({fine:10, medium:35, bold:110}[detail] * N/360000));
+    const minArea = Math.max(4, Math.round({extra:3, fine:8, medium:35, bold:110}[detail] * N/360000));
     mergeSmall(labels, w, h, minArea);
     const {comp, sizes, labels: compLabel} = components(labels, w, h);
     const D = distanceToEdges(labels, w, h);
@@ -848,7 +854,7 @@ function renderPattern(mode, opts={}){
   ctx.textAlign='center'; ctx.textBaseline='middle';
   for(const a of anchors){
     if(a.d<1.6) continue;
-    const fs=Math.max(7, Math.min(18, a.d*S*0.75));
+    const fs=Math.max(6, Math.min(18, a.d*S*0.75));
     ctx.font=`600 ${fs}px "Bricolage Grotesque", system-ui, sans-serif`;
     if(mode==='colour') ctx.fillStyle = lum(palRGB[a.label])>0.25 ? '#1b1f24' : '#ffffff';
     else ctx.fillStyle = transparent ? (opts.line||'#5B6470') : '#6B7480';
@@ -983,7 +989,7 @@ let stream = null;
 async function startCamera(video){
   if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error('unsupported');
   if(!stream) stream = await navigator.mediaDevices.getUserMedia({ audio:false,
-    video:{ facingMode:{ideal:'environment'}, width:{ideal:1920}, height:{ideal:1080} } });
+    video:{ facingMode:{ideal:'environment'}, width:{ideal:3840}, height:{ideal:2160} } });
   video.srcObject = stream;
   try{ await video.play(); }catch(e){}
 }
@@ -1037,6 +1043,8 @@ $('#lockBtn').addEventListener('click', e => {
   tr.locked = !tr.locked; e.target.setAttribute('aria-pressed', tr.locked);
   e.target.textContent = tr.locked ? 'Unlock position' : 'Lock position';
   stage.classList.toggle('locked', tr.locked);
+  $('#viewZoomBar').hidden = !tr.locked;
+  if(!tr.locked){ vz.s=1; vz.x=0; vz.y=0; vzApply(); }
 });
 camBtn.addEventListener('click', async () => {
   if(stream){ stopCamera(); keepAwake(false); camBtn.textContent='Start camera'; prepareOverlay(); return; }
@@ -1052,12 +1060,13 @@ $('#stillInput').addEventListener('change', e => {
   traceStill.src = URL.createObjectURL(f); traceStill.hidden=false; stageMsg.hidden=true;
 });
 const pts = new Map();
-stage.addEventListener('pointerdown', e => { if(tr.locked) return; stage.setPointerCapture(e.pointerId); pts.set(e.pointerId,{x:e.clientX,y:e.clientY}); });
+stage.addEventListener('pointerdown', e => { stage.setPointerCapture(e.pointerId); pts.set(e.pointerId,{x:e.clientX,y:e.clientY}); });
 stage.addEventListener('pointermove', e => {
-  if(!pts.has(e.pointerId) || tr.locked) return;
+  if(!pts.has(e.pointerId)) return;
   const before = [...pts.values()].map(p=>({...p}));
   pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
   const after = [...pts.values()];
+  if(tr.locked){ vzGesture(before, after); return; }
   if(after.length===1){ tr.x += after[0].x-before[0].x; tr.y += after[0].y-before[0].y; }
   else if(after.length>=2){
     const [a0,b0]=before, [a1,b1]=after;
@@ -1068,8 +1077,46 @@ stage.addEventListener('pointermove', e => {
   }
   applyTr();
 });
-['pointerup','pointercancel','pointerleave'].forEach(t => stage.addEventListener(t, e => pts.delete(e.pointerId)));
-stage.addEventListener('wheel', e => { if(tr.locked) return; e.preventDefault(); tr.s *= Math.exp(-e.deltaY*0.0015); applyTr(); }, {passive:false});
+['pointerup','pointercancel','pointerleave'].forEach(t => stage.addEventListener(t, e => {
+  if(t==='pointerup' && tr.locked && pts.size===1){
+    const r=stage.getBoundingClientRect(), x=e.clientX-r.left, y=e.clientY-r.top, now=Date.now();
+    if(now-vzTap.t<320 && Math.hypot(x-vzTap.x,y-vzTap.y)<30){ if(vz.s>1.5){ vz.s=1; vz.x=0; vz.y=0; vzApply(); } else vzZoomAt(2.5,x,y); vzTap.t=0; }
+    else vzTap={t:now,x,y};
+  }
+  pts.delete(e.pointerId);
+}));
+stage.addEventListener('wheel', e => {
+  e.preventDefault();
+  if(tr.locked){ const r=stage.getBoundingClientRect(); vzZoomAt(vz.s*Math.exp(-e.deltaY*0.0015), e.clientX-r.left, e.clientY-r.top); return; }
+  tr.s *= Math.exp(-e.deltaY*0.0015); applyTr();
+}, {passive:false});
+/* zoom the camera view and the locked lines together */
+const vz = {s:1, x:0, y:0}, traceView = $('#traceView');
+let vzTap = {t:0, x:0, y:0};
+function vzApply(){
+  const W=stage.clientWidth, H=stage.clientHeight;
+  vz.s = Math.min(5, Math.max(1, vz.s));
+  vz.x = Math.min(0, Math.max(W - W*vz.s, vz.x));
+  vz.y = Math.min(0, Math.max(H - H*vz.s, vz.y));
+  traceView.style.transform = `translate(${vz.x}px,${vz.y}px) scale(${vz.s})`;
+}
+function vzZoomAt(ns, cx, cy){
+  ns = Math.min(5, Math.max(1, ns));
+  vz.x = cx - (cx - vz.x)*(ns/vz.s); vz.y = cy - (cy - vz.y)*(ns/vz.s); vz.s = ns; vzApply();
+}
+function vzGesture(before, after){
+  const r = stage.getBoundingClientRect(), L = p => ({x:p.x-r.left, y:p.y-r.top});
+  if(after.length===1){ if(vz.s>1.01){ vz.x += after[0].x-before[0].x; vz.y += after[0].y-before[0].y; vzApply(); } return; }
+  const a0=L(before[0]), b0=L(before[1]), a1=L(after[0]), b1=L(after[1]);
+  const d0=Math.hypot(b0.x-a0.x,b0.y-a0.y), d1=Math.hypot(b1.x-a1.x,b1.y-a1.y);
+  const mx=(a1.x+b1.x)/2, my=(a1.y+b1.y)/2;
+  vz.x += mx-(a0.x+b0.x)/2; vz.y += my-(a0.y+b0.y)/2;
+  if(d0>0) vzZoomAt(vz.s*d1/d0, mx, my); else vzApply();
+}
+$('#vzIn').addEventListener('click', () => vzZoomAt(vz.s*1.5, stage.clientWidth/2, stage.clientHeight/2));
+$('#vzOut').addEventListener('click', () => vzZoomAt(vz.s/1.5, stage.clientWidth/2, stage.clientHeight/2));
+$('#vzFit').addEventListener('click', () => { vz.s=1; vz.x=0; vz.y=0; vzApply(); });
+window.addEventListener('resize', vzApply);
 
 /* ---------- colour sampler ---------- */
 const sampler=$('#sampler'), sVideo=$('#sVideo'), sPhoto=$('#sPhoto'), reticle=$('#reticle');
