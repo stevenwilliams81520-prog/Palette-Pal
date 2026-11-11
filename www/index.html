@@ -2,7 +2,7 @@
 <html lang="en-GB">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Palette Pal: paint by numbers and colour mixing</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -30,7 +30,7 @@
 }
 *,*::before,*::after{box-sizing:border-box}
 html{scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--bg);color:var(--ink);-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;
+body{margin:0;background:var(--bg);color:var(--ink);-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation;
   font-family:"Bricolage Grotesque",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   font-size:17px;line-height:1.45}
 button,input,select{font:inherit;color:inherit}
@@ -72,15 +72,23 @@ button.primary{background:var(--accent);color:var(--accent-ink);border-color:tra
 button.ghost{background:transparent}
 button.danger{color:var(--danger)}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--bg)}
-.seg button{border:0;border-radius:0;background:transparent;min-width:64px}
+.seg button{border:0;border-radius:0;background:transparent;min-width:52px}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
 .upload{display:flex;align-items:center;gap:14px;padding:18px;border:2px dashed var(--line);border-radius:16px;cursor:pointer}
 .upload input{position:absolute;opacity:0;width:1px;height:1px}
 .upload strong{display:block}
 .upload span{color:var(--muted);font-size:.95rem}
 #status,.status{color:var(--muted);font-size:.95rem}
-.canvasWrap{margin-top:14px;background:#fff;border-radius:6px;overflow:auto;border:1px solid var(--line)}
-.canvasWrap canvas{display:block;width:100%;height:auto}
+.canvasWrap{position:relative;margin-top:14px;background:#fff;border-radius:6px;overflow:hidden;border:1px solid var(--line);touch-action:pan-y}
+.canvasWrap.zoomed{touch-action:none}
+.canvasWrap canvas{display:block;width:100%;height:auto;transform-origin:0 0}
+.zoombar{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap}
+.zoombar button{min-width:44px;padding:8px 12px}
+.zoombar span{color:var(--muted);font-size:.9rem}
+.lib{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:12px 0}
+.lib button{display:flex;align-items:center;gap:10px;text-align:left;font-weight:500;padding:8px 10px;font-size:.95rem}
+.lib button[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 2px var(--accent)}
+.lib button.owned{opacity:.55}
 .empty{padding:28px 6px;color:var(--muted);max-width:52ch}
 
 .palette{list-style:none;padding:0;margin:10px 0 0;display:grid;gap:8px}
@@ -201,6 +209,7 @@ nav.tabs button[aria-selected="true"] i{background:var(--accent)}
       </div>
     </div>
     <div class="canvasWrap" id="patternView"></div>
+    <div class="zoombar"><button type="button" id="zoomOut" aria-label="Zoom out">−</button><button type="button" id="zoomIn" aria-label="Zoom in">+</button><button type="button" id="zoomFit">Fit</button><span>Pinch or double‑tap the picture to zoom</span></div>
     <div class="row" style="margin-top:12px">
       <button id="saveBtn">Save outline image</button>
       <button id="toTraceBtn" class="primary">Trace onto canvas</button>
@@ -274,11 +283,23 @@ nav.tabs button[aria-selected="true"] i{background:var(--accent)}
     </div>
   </div>
 
+  <div class="panel">
+    <h2 style="margin-top:0">Add from a paint range</h2>
+    <p class="hint">Choose a range, tap the colours you own, then add them. The colours are close on‑screen matches, so for the best mixes tap a paint in your list afterwards and fine‑tune it, or read your own swatch with the camera.</p>
+    <select id="rangeSel" aria-label="Paint range"></select>
+    <div class="lib" id="libGrid"></div>
+    <div class="row">
+      <button type="button" id="libAll">Select all</button>
+      <button type="button" class="ghost" id="libNone">Clear</button>
+      <button type="button" class="primary" id="libAdd" disabled>Add selected</button>
+    </div>
+  </div>
+
   <h2>Your paints</h2>
   <p class="hint">For the most accurate mixes, paint a thick swatch of each colour on white card, let it dry, and read it with the camera in daylight. Tap a paint to edit it.</p>
   <ul class="paints" id="paintList"></ul>
-  <div id="paintsEmpty" class="empty">No paints yet. Add the paints you own, or start with a common set and adjust the colours to match your tubes.
-    <div style="margin-top:12px"><button id="starterBtn">Add a common set</button></div></div>
+  <div id="paintsEmpty" class="empty">No paints yet. Pick the ones you own from a range, or add your own colour.</div>
+  <div class="row" style="margin-top:12px"><button class="ghost danger" id="clearPaintsBtn" hidden>Remove all paints</button></div>
 </section>
 
 <!-- MIX -->
@@ -310,6 +331,8 @@ nav.tabs button[aria-selected="true"] i{background:var(--accent)}
         <button type="button" data-v="1" aria-pressed="false">1</button>
         <button type="button" data-v="2" aria-pressed="false">2</button>
         <button type="button" data-v="3" aria-pressed="true">3</button>
+        <button type="button" data-v="4" aria-pressed="false">4</button>
+        <button type="button" data-v="5" aria-pressed="false">5</button>
       </div>
     </div>
   </div>
@@ -409,7 +432,7 @@ const fromKS = k => 1 + k - Math.sqrt(k*k + 2*k);
 const clampR = v => Math.min(0.999, Math.max(0.001, v));
 function prepPaint(p){
   const c = hexToRgb(p.hex);
-  return { id:p.id, name:p.name, hex:p.hex, ks:[toKS(clampR(S2L[c[0]])), toKS(clampR(S2L[c[1]])), toKS(clampR(S2L[c[2]]))] };
+  return { id:p.id, name:p.name, hex:p.hex, label: p.short ? `${p.name} (${p.short})` : p.name, ks:[toKS(clampR(S2L[c[0]])), toKS(clampR(S2L[c[1]])), toKS(clampR(S2L[c[2]]))] };
 }
 function mixLin(P, idx, w){
   let r=0,g=0,b=0;
@@ -431,43 +454,66 @@ function solveMix(targetHex, P, maxN){
   const n = P.length; if(!n) return [];
   const t = hexToLab(targetHex);
   const ev = (idx,w) => de2000(t, mixLab(P,idx,w));
-  const cands = [];
-  for(let i=0;i<n;i++) cands.push({idx:[i], w:[1], de:ev([i],[1])});
-  if(maxN>=2) for(let i=0;i<n;i++) for(let j=i+1;j<n;j++){
-    let best=null;
-    for(let s=1;s<100;s++){ const w=[s/100,1-s/100], d=ev([i,j],w); if(!best||d<best.de) best={idx:[i,j],w,de:d}; }
-    cands.push(best);
-  }
-  if(maxN>=3) for(let i=0;i<n;i++) for(let j=i+1;j<n;j++) for(let k=j+1;k<n;k++){
-    let best=null;
-    for(let a=1;a<19;a++) for(let b=1;a+b<20;b++){ const w=[a/20,b/20,(20-a-b)/20], d=ev([i,j,k],w); if(!best||d<best.de) best={idx:[i,j,k],w,de:d}; }
-    cands.push(best);
-  }
-  cands.sort((a,b)=>a.de-b.de);
-  const top = cands.slice(0, 16).map(c => {
-    let w=c.w.slice(), cur=c.de;
+  function refine(idx, w0){
+    let w=w0.slice(), cur=ev(idx,w);
     if(w.length>1) for(const step of [0.02,0.01,0.005,0.0025]){
       let improved=true, guard=0;
-      while(improved && guard++<200){
+      while(improved && guard++<120){
         improved=false;
         for(let a=0;a<w.length;a++) for(let b=0;b<w.length;b++){
           if(a===b || w[b]-step<0.002) continue;
           const w2=w.slice(); w2[a]+=step; w2[b]-=step;
-          const d=ev(c.idx,w2); if(d<cur-1e-6){ w=w2; cur=d; improved=true; }
+          const d=ev(idx,w2); if(d<cur-1e-6){ w=w2; cur=d; improved=true; }
         }
       }
     }
-    const pct = roundPercents(w);
-    const de = ev(c.idx, pct.map(x=>x/100));
-    return { idx:c.idx, pct, de, score: de + 0.6*(c.idx.length-1) };
+    return {idx, w, de:cur};
+  }
+  const cands = [];
+  for(let i=0;i<n;i++) cands.push({idx:[i], w:[1], de:ev([i],[1])});
+  if(maxN>=2){
+    for(let i=0;i<n;i++) for(let j=i+1;j<n;j++){
+      let best=null;
+      for(let s=5;s<100;s+=5){ const w=[s/100,1-s/100], d=ev([i,j],w); if(!best||d<best.de) best={idx:[i,j],w,de:d}; }
+      cands.push(best);
+    }
+  }
+  // the paints most useful for this colour, so bigger mixes stay quick with long paint lists
+  cands.sort((a,b)=>a.de-b.de);
+  const useful = [];
+  for(const c of cands){ for(const ix of c.idx) if(!useful.includes(ix)) useful.push(ix); if(useful.length>=16) break; }
+  for(let i=0;i<n && useful.length<Math.min(n,20);i++) if(!useful.includes(i)) useful.push(i);
+  if(maxN>=3){
+    const U = n<=16 ? [...Array(n).keys()] : useful.slice(0,16);
+    for(let a=0;a<U.length;a++) for(let b=a+1;b<U.length;b++) for(let c=b+1;c<U.length;c++){
+      const ids=[U[a],U[b],U[c]]; let best=null;
+      for(let x=1;x<9;x++) for(let y=1;x+y<10;y++){ const w=[x/10,y/10,(10-x-y)/10], d=ev(ids,w); if(!best||d<best.de) best={idx:ids,w,de:d}; }
+      cands.push(best);
+    }
+    cands.sort((a,b)=>a.de-b.de);
+  }
+  let refined = cands.slice(0,24).map(c => refine(c.idx, c.w));
+  // grow the best mixes one paint at a time for 4 and 5 paint mixes
+  for(let size=4; size<=maxN; size++){
+    const bases = refined.filter(r=>r.idx.length===size-1).sort((a,b)=>a.de-b.de).slice(0,6);
+    const grown = [];
+    for(const base of bases) for(const j of useful.slice(0,20)){
+      if(base.idx.includes(j)) continue;
+      grown.push(refine(base.idx.concat(j), base.w.map(x=>x*0.92).concat(0.08)));
+    }
+    grown.sort((a,b)=>a.de-b.de);
+    refined = refined.concat(grown.slice(0,8));
+  }
+  const pool = refined.concat(cands.slice(24,40)).map(r => {
+    const pct = roundPercents(r.w);
+    const de = ev(r.idx, pct.map(x=>x/100));
+    return {idx:r.idx, pct, de, score: de + 0.3*(r.idx.length-1)};
   });
-  // short list across all candidate sets, preferring fewer paints when the match is similar
-  const pool = top.concat(cands.slice(16, 40).map(c => ({idx:c.idx, pct:roundPercents(c.w), de:c.de, score:c.de+0.6*(c.idx.length-1)})));
   const seen = new Set(), out=[];
   pool.sort((a,b)=>a.score-b.score);
   for(const r of pool){
     const parts = r.idx.map((ix,i)=>[ix,r.pct[i]]).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]);
-    const key = parts.map(x=>x[0]).sort().join(',');
+    const key = parts.map(x=>x[0]).sort((a,b)=>a-b).join(',');
     if(seen.has(key)) continue; seen.add(key);
     out.push({ items: parts.map(([ix,p])=>({paint:P[ix], pct:p})), de:r.de,
       hex: mixHex(P, parts.map(x=>x[0]), parts.map(x=>x[1]/100)) });
@@ -498,10 +544,67 @@ let prepared = null;
 let recipeCache = new Map();
 function paintsChanged(){ save('daub.paints', paints); prepared=null; recipeCache.clear(); renderPaints(); renderPalette(); updateMix(); }
 const getPrepared = () => prepared || (prepared = paints.map(prepPaint));
-const STARTER = [
-  ['Titanium white','#F4F4F0'],['Mars black','#1E1E1F'],['Lemon yellow','#F2E03A'],['Cadmium yellow','#F6B800'],
-  ['Cadmium red','#C8102E'],['Alizarin crimson','#7A1A2C'],['Ultramarine blue','#23297A'],['Phthalo green','#0F5B48'],
-  ['Yellow ochre','#C9922E'],['Burnt umber','#4A2F22']
+/* Popular paint ranges. Colours are approximate on-screen matches of each paint straight from the tube. */
+const BRANDS = [
+ { brand:'Winsor & Newton', range:'Galeria', short:'Galeria', medium:'acrylic', colours:[
+  ['Titanium White','#F5F5F1'],['Mars Black','#1D1D1F'],['Payne’s Gray','#2E3A45'],['Lemon','#F3E33B'],
+  ['Cadmium Yellow Medium Hue','#F7B400'],['Cadmium Orange Hue','#F0761E'],['Cadmium Red Medium Hue','#CF2A27'],
+  ['Crimson','#A31B2E'],['Permanent Rose','#D2366A'],['Process Magenta','#C3247A'],['Dioxazine Purple','#3B1F5B'],
+  ['Ultramarine','#26307F'],['Cerulean Blue Hue','#2A79B8'],['Phthalo Blue','#0F2C5E'],['Phthalo Green','#0B5A4A'],
+  ['Sap Green','#4E6A26'],['Yellow Ochre','#C9963A'],['Raw Sienna','#B5763A'],['Burnt Sienna','#8E3E22'],
+  ['Raw Umber','#5A4632'],['Burnt Umber','#4B3022']]},
+ { brand:'Winsor & Newton', range:'Winton', short:'Winton', medium:'oil', colours:[
+  ['Titanium White','#F4F3EE'],['Ivory Black','#22201F'],['Payne’s Gray','#2C3640'],['Lemon Yellow Hue','#F2E13C'],
+  ['Cadmium Yellow Pale Hue','#F6C82A'],['Cadmium Yellow Hue','#F5AE0A'],['Cadmium Orange Hue','#EE7320'],
+  ['Cadmium Red Hue','#CC2B26'],['Cadmium Red Deep Hue','#A5221F'],['Permanent Alizarin Crimson','#7C1C2C'],
+  ['Dioxazine Violet','#3A1E58'],['French Ultramarine','#252E85'],['Cerulean Blue Hue','#2B78B5'],
+  ['Phthalo Blue','#102B5C'],['Viridian Hue','#2E6E5A'],['Sap Green','#4B6625'],['Yellow Ochre','#C79236'],
+  ['Raw Sienna','#B07338'],['Burnt Sienna','#8A3C21'],['Raw Umber','#574431'],['Burnt Umber','#4A2F22']]},
+ { brand:'Daler-Rowney', range:'System3', short:'System3', medium:'acrylic', colours:[
+  ['Titanium White','#F5F5F2'],['Mars Black','#1E1E1F'],['Payne’s Grey','#2D3743'],['Lemon Yellow','#F4E23A'],
+  ['Cadmium Yellow (Hue)','#F6B301'],['Cadmium Orange (Hue)','#EF7420'],['Cadmium Red (Hue)','#CC2A28'],
+  ['Crimson','#9E1B30'],['Process Magenta','#C4237B'],['Purple','#4A2463'],['Ultramarine','#273183'],
+  ['Coeruleum (Hue)','#2B7DBA'],['Phthalo Blue','#10305F'],['Prussian Blue (Hue)','#1C2E46'],
+  ['Phthalo Green','#0C5B4B'],['Hooker’s Green','#2F5A2E'],['Sap Green','#4F6B27'],['Yellow Ochre','#C8953A'],
+  ['Burnt Sienna','#8C3D22'],['Raw Umber','#594532'],['Burnt Umber','#4A3022']]},
+ { brand:'Liquitex', range:'BASICS', short:'BASICS', medium:'acrylic', colours:[
+  ['Titanium White','#F6F6F3'],['Mars Black','#1C1C1D'],['Cadmium Yellow Light Hue','#F8D21A'],
+  ['Cadmium Yellow Medium Hue','#F6B60A'],['Cadmium Orange Hue','#EF7221'],['Cadmium Red Medium Hue','#CD2A28'],
+  ['Naphthol Crimson','#B0222F'],['Medium Magenta','#C22E7C'],['Dioxazine Purple','#3A1F5A'],
+  ['Ultramarine Blue','#25307F'],['Cerulean Blue Hue','#2A7BB8'],['Phthalocyanine Blue','#0F2D5E'],
+  ['Phthalocyanine Green','#0B594A'],['Light Green Permanent','#4FA65A'],['Hooker’s Green Hue','#2E5A2D'],
+  ['Yellow Oxide','#D19A32'],['Raw Sienna','#B3753A'],['Burnt Sienna','#8C3C22'],['Raw Umber','#584532'],['Burnt Umber','#4A2F22']]},
+ { brand:'Golden', range:'Heavy Body', short:'Golden HB', medium:'acrylic', colours:[
+  ['Titanium White','#F7F7F4'],['Carbon Black','#191919'],['Paynes Gray','#2B3540'],['Hansa Yellow Light','#F6E03A'],
+  ['Hansa Yellow Medium','#F5C11A'],['Pyrrole Orange','#EE5A23'],['Pyrrole Red','#C9202A'],
+  ['Quinacridone Magenta','#8E1F4B'],['Dioxazine Purple','#371D55'],['Ultramarine Blue','#26307E'],
+  ['Cobalt Blue','#1F4A9A'],['Cerulean Blue Chromium','#2E7BB5'],['Phthalo Blue (Green Shade)','#10294A'],
+  ['Phthalo Green (Blue Shade)','#0A4A40'],['Yellow Ochre','#C9943A'],['Raw Sienna','#B27439'],
+  ['Burnt Sienna','#8B3B21'],['Raw Umber','#564431'],['Burnt Umber','#482E21']]},
+ { brand:'Royal Talens', range:'Amsterdam Standard', short:'Amsterdam', medium:'acrylic', colours:[
+  ['Titanium White','#F6F6F2'],['Oxide Black','#1E1E1E'],['Payne’s Grey','#2D3742'],['Primary Yellow','#F4D300'],
+  ['Azo Yellow Deep','#F4A100'],['Azo Orange','#EE6A1F'],['Naphthol Red Medium','#C72A2E'],
+  ['Primary Magenta','#C21E78'],['Permanent Blue Violet','#3B2E78'],['Ultramarine','#283282'],
+  ['Primary Cyan','#0081C3'],['Phthalo Blue','#10305E'],['Permanent Green Light','#4FA449'],
+  ['Phthalo Green','#0C5A4A'],['Yellow Ochre','#C8933A'],['Raw Sienna','#B3743A'],['Burnt Sienna','#8C3C22'],
+  ['Burnt Umber','#4A2F22']]},
+ { brand:'Daler-Rowney', range:'Georgian', short:'Georgian', medium:'oil', colours:[
+  ['Titanium White','#F4F3EE'],['Lamp Black','#1F1F20'],['Payne’s Grey','#2C3640'],['Lemon Yellow','#F3E03C'],
+  ['Cadmium Yellow Hue','#F5B00C'],['Cadmium Orange Hue','#EE7420'],['Cadmium Red Hue','#CB2B27'],
+  ['Alizarin Crimson Hue','#7E1D2D'],['Rose Madder Hue','#C2405F'],['Purple Madder','#4F2240'],
+  ['French Ultramarine','#252E84'],['Coeruleum Hue','#2C7BB6'],['Prussian Blue','#1B2C44'],
+  ['Viridian Hue','#2D6D59'],['Sap Green','#4C6826'],['Yellow Ochre','#C79338'],['Raw Sienna','#B07339'],
+  ['Burnt Sienna','#8A3C21'],['Raw Umber','#574431'],['Burnt Umber','#4A2F22']]},
+ { brand:'Crawford & Black', range:'Acrylic', short:'C&B', medium:'acrylic', colours:[
+  ['White','#F4F4F1'],['Black','#1F1F20'],['Lemon Yellow','#F4E13C'],['Cadmium Yellow','#F6B70A'],
+  ['Ochre Yellow','#CC9636'],['Orange','#EF7322'],['Cadmium Red','#D02C27'],['Deep Red','#A11E2B'],
+  ['Violet','#4A2668'],['Ultramarine','#283285'],['Cerulean Blue','#2C7DBA'],['Sap Green','#4F6B28'],
+  ['Burnt Sienna','#8E3E23'],['Burnt Umber','#4B3023']]},
+ { brand:'Reeves', range:'Acrylic', short:'Reeves', medium:'acrylic', colours:[
+  ['Titanium White','#F5F5F2'],['Mars Black','#1E1E1F'],['Lemon Yellow','#F3E03A'],['Primary Yellow','#F6CB12'],
+  ['Orange','#EF7322'],['Vermilion Hue','#E2432A'],['Crimson','#A11D30'],['Magenta','#C02675'],['Violet','#45286A'],
+  ['Ultramarine','#273183'],['Cerulean Blue','#2C7BB8'],['Phthalo Blue','#11305F'],['Leaf Green','#4C9A3C'],
+  ['Phthalo Green','#0C5A4A'],['Yellow Ochre','#C8953A'],['Burnt Sienna','#8C3D22'],['Burnt Umber','#4A3022']]}
 ];
 
 /* ---------- reusable colour fields ---------- */
@@ -714,7 +817,7 @@ async function makePattern(){
     recipeCache.clear();
     statusEl.textContent = `Pattern ready: ${palette.length} colours, ${sizes.length} areas to paint.`;
     $('#pictureEmpty').hidden = true; $('#patternArea').hidden = false;
-    showPatternView(); renderPalette(); renderChips(); overlayDirty = true;
+    pz.s=1; pz.x=0; pz.y=0; showPatternView(); renderPalette(); renderChips(); overlayDirty = true;
   }catch(err){
     console.error(err); statusEl.textContent = 'Something went wrong making the pattern. Try a smaller photo or fewer colours.';
   }
@@ -759,7 +862,55 @@ function showPatternView(){
   if(!pattern) return;
   const wrap=$('#patternView'); wrap.innerHTML='';
   wrap.appendChild(renderPattern(viewMode));
+  pzApply();
 }
+/* pinch / double-tap zoom on the pattern only */
+const pz = {s:1, x:0, y:0}, pzWrap = $('#patternView'), pzPts = new Map();
+let pzLastTap = {t:0, x:0, y:0};
+function pzApply(){
+  const cv = pzWrap.querySelector('canvas'); if(!cv) return;
+  const W = pzWrap.clientWidth, H = pzWrap.clientHeight;
+  pz.s = Math.min(6, Math.max(1, pz.s));
+  pz.x = Math.min(0, Math.max(W - W*pz.s, pz.x));
+  pz.y = Math.min(0, Math.max(H - H*pz.s, pz.y));
+  cv.style.transform = `translate(${pz.x}px,${pz.y}px) scale(${pz.s})`;
+  pzWrap.classList.toggle('zoomed', pz.s > 1.01);
+}
+function pzZoomAt(ns, cx, cy){
+  ns = Math.min(6, Math.max(1, ns));
+  pz.x = cx - (cx - pz.x) * (ns / pz.s); pz.y = cy - (cy - pz.y) * (ns / pz.s); pz.s = ns; pzApply();
+}
+const pzLocal = e => { const r = pzWrap.getBoundingClientRect(); return {x:e.clientX - r.left, y:e.clientY - r.top}; };
+pzWrap.addEventListener('pointerdown', e => { pzPts.set(e.pointerId, pzLocal(e)); if(pzPts.size>1 || pz.s>1.01) pzWrap.setPointerCapture(e.pointerId); });
+pzWrap.addEventListener('pointermove', e => {
+  if(!pzPts.has(e.pointerId)) return;
+  const before = [...pzPts.values()].map(p=>({...p}));
+  pzPts.set(e.pointerId, pzLocal(e));
+  const after = [...pzPts.values()];
+  if(after.length===1 && pz.s>1.01){ pz.x += after[0].x-before[0].x; pz.y += after[0].y-before[0].y; pzApply(); }
+  else if(after.length>=2){
+    const [a0,b0]=before, [a1,b1]=after;
+    const d0=Math.hypot(b0.x-a0.x,b0.y-a0.y), d1=Math.hypot(b1.x-a1.x,b1.y-a1.y);
+    const mx=(a1.x+b1.x)/2, my=(a1.y+b1.y)/2;
+    pz.x += mx-(a0.x+b0.x)/2; pz.y += my-(a0.y+b0.y)/2;
+    if(d0>0) pzZoomAt(pz.s*d1/d0, mx, my); else pzApply();
+  }
+});
+pzWrap.addEventListener('pointerup', e => {
+  const p = pzLocal(e), now = Date.now();
+  if(pzPts.size===1 && now-pzLastTap.t < 320 && Math.hypot(p.x-pzLastTap.x, p.y-pzLastTap.y) < 30){
+    if(pz.s > 1.5){ pz.s=1; pz.x=0; pz.y=0; pzApply(); } else pzZoomAt(3, p.x, p.y);
+    pzLastTap.t = 0;
+  } else pzLastTap = {t:now, x:p.x, y:p.y};
+  pzPts.delete(e.pointerId);
+});
+pzWrap.addEventListener('pointercancel', e => pzPts.delete(e.pointerId));
+$('#zoomIn').addEventListener('click', () => pzZoomAt(pz.s*1.5, pzWrap.clientWidth/2, pzWrap.clientHeight/2));
+$('#zoomOut').addEventListener('click', () => pzZoomAt(pz.s/1.5, pzWrap.clientWidth/2, pzWrap.clientHeight/2));
+$('#zoomFit').addEventListener('click', () => { pz.s=1; pz.x=0; pz.y=0; pzApply(); });
+window.addEventListener('resize', pzApply);
+// stop iOS page zoom gestures everywhere else
+['gesturestart','gesturechange'].forEach(t => document.addEventListener(t, e => e.preventDefault(), {passive:false}));
 $('#saveBtn').addEventListener('click', () => {
   if(!pattern) return;
   const cv = renderPattern('outline');
@@ -792,7 +943,7 @@ function recipeFor(hex){
 }
 function recipeLine(r){
   if(!r) return '';
-  return r.items.map(it => `${it.pct}% ${esc(it.paint.name)}`).join(', ') + `. ${verdict(r.de)}.`;
+  return r.items.map(it => `${it.pct}% ${esc(it.paint.label)}`).join(', ') + `. ${verdict(r.de)}.`;
 }
 function renderPalette(){
   const list=$('#paletteList'); if(!pattern){ list.innerHTML=''; return; }
@@ -1013,15 +1164,41 @@ $('#savePaintBtn').addEventListener('click', () => {
 });
 $('#cancelEditBtn').addEventListener('click', endEdit);
 function endEdit(){ editingId=null; $('#pName').value=''; $('#paintFormTitle').textContent='Add a paint'; $('#savePaintBtn').textContent='Save paint'; $('#cancelEditBtn').hidden=true; }
-$('#starterBtn').addEventListener('click', () => {
-  STARTER.forEach(([name,hex],i) => paints.push({id:'s'+i+Date.now().toString(36), name, hex}));
-  paintsChanged();
+const rangeSel = $('#rangeSel'), libGrid = $('#libGrid'), libSel = new Set();
+rangeSel.innerHTML = BRANDS.map((b,i) => `<option value="${i}">${esc(b.brand)}: ${esc(b.range)} (${b.medium})</option>`).join('');
+function renderLib(){
+  const b = BRANDS[+rangeSel.value];
+  libGrid.innerHTML = b.colours.map(([name,hex],i) => {
+    const owned = paints.some(p => p.range===b.brand+' '+b.range && p.name===name);
+    return `<button type="button" data-i="${i}" aria-pressed="${libSel.has(i)}" ${owned?'class="owned" disabled':''}>
+      <span class="dab sm" style="background:${hex}"></span><span>${esc(name)}${owned?'<br><small>Added</small>':''}</span></button>`;
+  }).join('');
+  libGrid.querySelectorAll('button:not([disabled])').forEach(btn => btn.addEventListener('click', () => {
+    const i=+btn.dataset.i; libSel.has(i) ? libSel.delete(i) : libSel.add(i);
+    btn.setAttribute('aria-pressed', libSel.has(i)); libCount();
+  }));
+  libCount();
+}
+function libCount(){ const n=libSel.size; $('#libAdd').disabled=!n; $('#libAdd').textContent = n ? `Add ${n} selected` : 'Add selected'; }
+rangeSel.addEventListener('change', () => { libSel.clear(); renderLib(); });
+$('#libAll').addEventListener('click', () => { libGrid.querySelectorAll('button:not([disabled])').forEach(b => libSel.add(+b.dataset.i)); renderLib(); });
+$('#libNone').addEventListener('click', () => { libSel.clear(); renderLib(); });
+$('#libAdd').addEventListener('click', () => {
+  const b = BRANDS[+rangeSel.value];
+  [...libSel].sort((x,y)=>x-y).forEach(i => { const [name,hex]=b.colours[i];
+    paints.push({ id: Date.now().toString(36)+i+Math.random().toString(36).slice(2,5), name, hex, range: b.brand+' '+b.range, short: b.short }); });
+  libSel.clear(); paintsChanged();
+});
+$('#clearPaintsBtn').addEventListener('click', () => {
+  if(confirm('Remove all your paints?')){ paints=[]; paintsChanged(); }
 });
 function renderPaints(){
   $('#paintsEmpty').hidden = paints.length>0;
+  $('#clearPaintsBtn').hidden = paints.length<2;
+  renderLib();
   const list=$('#paintList');
   list.innerHTML = paints.map(p => `<li><span class="dab" style="background:${p.hex}"></span>
-    <div class="pinfo" data-edit="${p.id}"><div class="hex">${esc(p.name)}</div><div class="sub">${p.hex}</div></div>
+    <div class="pinfo" data-edit="${p.id}"><div class="hex">${esc(p.name)}</div><div class="sub">${p.range ? esc(p.range)+', ' : ''}${p.hex}</div></div>
     <button class="ghost danger" data-del="${p.id}" aria-label="Remove ${esc(p.name)}">Remove</button></li>`).join('');
   list.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => { paints=paints.filter(p=>p.id!==b.dataset.del); paintsChanged(); }));
   list.querySelectorAll('[data-edit]').forEach(el => el.addEventListener('click', () => {
@@ -1045,12 +1222,12 @@ function updateMix(){
   if(!res.length){ box.innerHTML=''; return; }
   box.innerHTML = res.map((r,i) => {
     const parts = toParts(r.items.map(x=>x.pct));
-    const partsText = parts ? 'Or by parts: ' + r.items.map((it,j)=>`${parts[j]} ${parts[j]===1?'part':'parts'} ${esc(it.paint.name)}`).join(', ') + '.' : '';
+    const partsText = parts ? 'Or by parts: ' + r.items.map((it,j)=>`${parts[j]} ${parts[j]===1?'part':'parts'} ${esc(it.paint.label)}`).join(', ') + '.' : '';
     return `<div class="recipe">
       <div class="head"><div class="pair"><span class="dab" style="background:${tHex}" title="Wanted"></span><span class="dab" style="background:${r.hex}" title="Mixed"></span></div>
         <div><div class="verdict">${i===0?'Best mix':'Alternative'}: ${verdict(r.de)}</div><div class="de">Colour difference ${r.de.toFixed(1)} (under 2 is hard to see)</div></div></div>
       <div class="bar">${r.items.map(it=>`<div style="flex:${it.pct};background:${it.paint.hex}"></div>`).join('')}</div>
-      <div class="ing">${r.items.map(it=>`<span class="dab sm" style="background:${it.paint.hex}"></span><span>${esc(it.paint.name)}</span><span class="pct">${it.pct}%</span>`).join('')}</div>
+      <div class="ing">${r.items.map(it=>`<span class="dab sm" style="background:${it.paint.hex}"></span><span>${esc(it.paint.label)}</span><span class="pct">${it.pct}%</span>`).join('')}</div>
       ${partsText ? `<div class="parts">${partsText}</div>`:''}
       ${i===0 && r.de>=12 ? `<div class="parts">None of your paints get near this. A paint closer to this colour would help.</div>`:''}
     </div>`;
